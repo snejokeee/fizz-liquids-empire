@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fizz Liquids Empire</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Fizz Liquids Empire</h1>
+    <span class="company-title" id="company-title">Sidewalk Stall</span>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Stall — Fizzy Lemonade</h2>
+      <p>Money: <strong>$<span id="money">0</span></strong></p>
+      <p>Stock: <strong><span id="stock">0</span> cups</strong></p>
+      <p>Reputation: <strong><span id="reputation">0</span></strong></p>
+
+      <label for="price-slider">Price: <strong>$<span id="price">0</span></strong> per cup</label>
+      <input type="range" id="price-slider" min="1" max="10" step="1" value="5">
+      <p>Buy chance: <strong id="buy-chance">0%</strong></p>
+
+      <button id="restock">Restock</button>
+      <p class="muted">Ticks: <span id="ticks">0</span></p>
+    </section>
+
+    <section class="panel">
+      <h2>Upgrades</h2>
+      <p>Quality: <strong><span id="quality">0</span></strong> · Attractiveness: <strong><span id="attractiveness">0</span></strong></p>
+      <button id="upgrade-quality">Better Recipe</button>
+      <button id="upgrade-stall">Nicer Stall</button>
+    </section>
+
+    <section class="panel">
+      <h2>Event Log</h2>
+      <ul id="log-list"></ul>
+    </section>
+  </main>
+
+  <div id="game-over" class="overlay hidden">
+    <div class="overlay-box">
+      <h2>Game Over</h2>
+      <p>You ran out of stock and couldn't afford to restock. Your drink empire fizzled out.</p>
+      <p>Cups sold: <strong id="final-cups">0</strong></p>
+      <button id="restart">Start a new stall</button>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>
