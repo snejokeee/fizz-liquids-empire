@@ -2,7 +2,7 @@
 
 Version: 0.0.1 (MVP — playable)
 Date: 2026-08-25
-Status: implemented — roadmap steps 1–6 and 8 are done; numbers are a first
+Status: implemented — roadmap steps 1–6, 8 and 9 are done; numbers are a first
 balance pass and will be tuned after playtesting (step 7).
 
 ---
@@ -113,6 +113,11 @@ closed.") and at closing the day is recapped ("Today: X cups sold, $Y earned.").
 The clock starts at 08:00 so a new game opens immediately. Numbers live in
 CONFIG: `openHour = 8`, `closeHour = 23`, `clockStart.hour = 8`.
 
+**Phase-gated actions** — the clock also gates what the player can do: restock
+works only while the stall is open (day), upgrades only while it is closed
+(night). Disabled buttons say why in their label ("only while open" / "only
+while closed"), and clicking a gated action logs the reason.
+
 **Buy decision** — a customer buys with probability:
 
 ```
@@ -212,9 +217,9 @@ Follows AGENTS.md: **state holds the truth, render draws it, actions change it.*
 
 ## 12. Implementation Roadmap (small steps)
 
-Status: steps 1–6 and 8 implemented — the MVP plus opening hours is playable
-in the browser. Step 7 (balance pass) is an ongoing tuning task as the game is
-playtested.
+Status: steps 1–6, 8 and 9 implemented — the MVP plus the day/night cycle is
+playable in the browser. Step 7 (balance pass) is an ongoing tuning task as
+the game is playtested.
 
 1. ✅ **Static page** — `index.html` + `style.css` + `game.js`, render a hardcoded
    state (money, stock, price) so the layout exists. *(learning: HTML/CSS)*
@@ -233,6 +238,9 @@ playtested.
 8. ✅ **Opening hours (day/night cycle)** — CONFIG.openHour/closeHour, hard-gated
    arrivals at night, OPEN/CLOSED badge in the header, boundary log lines and a
    daily recap at closing. *(learning: derived state, time-based rules)*
+9. ✅ **Phase-gated actions** — restock enabled only while open, upgrades only
+   while closed; disabled buttons state the phase in their label and blocked
+   clicks are explained in the log. *(learning: time-based action rules)*
 
 Each step leaves the game runnable in the browser.
 

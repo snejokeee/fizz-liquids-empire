@@ -320,9 +320,10 @@ function render() {
   els.stock.textContent = state.stock;
   els.reputation.textContent = state.reputation;
   els.clock.textContent = formatClock();
-  els.statusBadge.textContent = isOpen() ? 'OPEN' : 'CLOSED';
-  els.statusBadge.classList.toggle('open', isOpen());
-  els.statusBadge.classList.toggle('closed', !isOpen());
+  const open = isOpen();
+  els.statusBadge.textContent = open ? 'OPEN' : 'CLOSED';
+  els.statusBadge.classList.toggle('open', open);
+  els.statusBadge.classList.toggle('closed', !open);
   els.timeline.classList.toggle('paused', state.paused);
   els.pause.textContent = state.paused ? 'Play' : 'Pause';
   els.pause.disabled = state.gameOver;
@@ -334,13 +335,14 @@ function render() {
   els.companyTitle.textContent = companyTitle();
   els.finalCups.textContent = state.cupsSold;
 
+  // Phase gating (issue #3): restock is a day action, upgrades are night actions.
   const affordable = (cost) => state.money >= cost && !state.gameOver;
-  els.restock.disabled = !affordable(restockCost());
-  els.restock.textContent = `Restock ${CONFIG.restockBatchSize} cups — $${restockCost()}`;
-  els.upgradeQuality.disabled = !affordable(upgradeCost('quality'));
-  els.upgradeQuality.textContent = `${CONFIG.upgrades.quality.name} (+${CONFIG.upgrades.quality.effect} quality) — $${upgradeCost('quality')}`;
-  els.upgradeStall.disabled = !affordable(upgradeCost('stall'));
-  els.upgradeStall.textContent = `${CONFIG.upgrades.stall.name} (+${CONFIG.upgrades.stall.effect} attractiveness) — $${upgradeCost('stall')}`;
+  els.restock.disabled = !open || !affordable(restockCost());
+  els.restock.textContent = `Restock ${CONFIG.restockBatchSize} cups — $${restockCost()}${open ? '' : ' (only while open)'}`;
+  els.upgradeQuality.disabled = open || !affordable(upgradeCost('quality'));
+  els.upgradeQuality.textContent = `${CONFIG.upgrades.quality.name} (+${CONFIG.upgrades.quality.effect} quality) — $${upgradeCost('quality')}${open ? ' (only while closed)' : ''}`;
+  els.upgradeStall.disabled = open || !affordable(upgradeCost('stall'));
+  els.upgradeStall.textContent = `${CONFIG.upgrades.stall.name} (+${CONFIG.upgrades.stall.effect} attractiveness) — $${upgradeCost('stall')}${open ? ' (only while closed)' : ''}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -352,6 +354,10 @@ function setPrice(price) {
 }
 
 function restock() {
+  if (!isOpen()) {
+    addLog('Restock is only available while the stall is open.');
+    return;
+  }
   const cost = restockCost();
   if (state.money < cost) {
     addLog(`Not enough money to restock ($${cost}).`);
@@ -365,6 +371,10 @@ function restock() {
 
 function upgrade(key) {
   const def = CONFIG.upgrades[key];
+  if (isOpen()) {
+    addLog(`${def.name} is only available while the stall is closed.`);
+    return;
+  }
   const cost = upgradeCost(key);
   if (state.money < cost) {
     addLog(`Not enough money for ${def.name} ($${cost}).`);
