@@ -49,7 +49,8 @@ Design decisions live in `DESIGN.md` (the source of truth for numbers and roadma
 What exists:
 
 - vanilla HTML/CSS/JS — no frameworks, no build tools
-- three files: `index.html`, `style.css`, `game.js`
+- three game files: `index.html`, `style.css`, `game.js`
+- smoke tests for the game logic: `tests/smoke.js` — run with `node tests/smoke.js`
 - real-time simulation: 1 tick per second
 - customers arrive and decide to buy based on drink quality vs. price
 - player actions: price slider, restock, two upgrades (Better Recipe, Nicer Stall)
@@ -82,6 +83,7 @@ When working on this project:
 - keep changes small and understandable
 - prefer simple code over clever code
 - keep the game runnable in the browser
+- keep the smoke test green: run `node tests/smoke.js` after changing game logic
 - avoid premature abstraction
 - avoid adding tools too early
 - explain why a solution works

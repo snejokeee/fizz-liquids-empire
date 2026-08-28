@@ -2,7 +2,7 @@
 
 Version: 0.0.1 (MVP — playable)
 Date: 2026-08-25
-Status: implemented — roadmap steps 1–6 and 8–10 are done; numbers are a first
+Status: implemented — roadmap steps 1–6 and 8–11 are done; numbers are a first
 balance pass and will be tuned after playtesting (step 7).
 
 ---
@@ -221,7 +221,7 @@ Follows AGENTS.md: **state holds the truth, render draws it, actions change it.*
 
 ## 12. Implementation Roadmap (small steps)
 
-Status: steps 1–6 and 8–10 implemented — the MVP plus the day/night cycle is
+Status: steps 1–6 and 8–11 implemented — the MVP plus the day/night cycle is
 playable in the browser. Step 7 (balance pass) is an ongoing tuning task as
 the game is playtested.
 
@@ -249,6 +249,10 @@ the game is playtested.
     time in one click: while open it waits until closing (23:00), while closed
     it waits until the next morning (08:00). *(learning: time skipping, player
     convenience)*
+11. ✅ **Smoke tests** — `tests/smoke.js`: plain Node, no dependencies. Runs
+    game.js with a stubbed DOM and deterministic randomness, covering the
+    clock/opening hours, phase gating and the fast-forward skip. *(learning:
+    regression testing)*
 
 Each step leaves the game runnable in the browser.
 
