@@ -1,7 +1,7 @@
 # Fizz Liquids Empire — Design Document
 
-Version: 0.0.1
-Date: 2026-08-25
+Version: 0.0.2
+Date: 2026-08-28
 Status: implemented and playable in the browser; numbers are a first balance
 pass, tuned by playtesting.
 

@@ -41,9 +41,9 @@ The game may eventually include:
 
 The long-term fantasy is not just selling drinks, but building a beverage brand.
 
-## Current Development Stage (v0.0.1)
+## Current Development Stage (v0.0.2)
 
-**Version 0.0.1 — playable MVP with a single drink (Fizzy Lemonade).**
+**Version 0.0.2 — the MVP plus the day/night cycle.**
 Design decisions live in `DESIGN.md` (the source of truth for numbers and roadmap).
 
 What exists:
