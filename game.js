@@ -15,7 +15,7 @@ const CONFIG = {
   // In-game clock (issue #1): the game starts at a fixed date/time and
   // advances clockMinutesPerTick per tick (1 tick = 1 real second).
   clockStart: { year: 1990, month: 8, day: 1, hour: 8, minute: 0 },
-  clockMinutesPerTick: 1,
+  clockMinutesPerTick: 10, // 10 in-game minutes per real second (game speed)
 
   // Opening hours (issue #2): the stall is open from openHour (08:00) up to
   // closeHour (23:00). No customers arrive while closed. The clock starts at
@@ -94,6 +94,7 @@ const els = {
   statusBadge: document.getElementById('status-badge'),
   timeline: document.getElementById('timeline'),
   pause: document.getElementById('pause'),
+  waitMorning: document.getElementById('wait-morning'),
   price: document.getElementById('price'),
   buyChance: document.getElementById('buy-chance'),
   priceSlider: document.getElementById('price-slider'),
@@ -327,6 +328,7 @@ function render() {
   els.timeline.classList.toggle('paused', state.paused);
   els.pause.textContent = state.paused ? 'Play' : 'Pause';
   els.pause.disabled = state.gameOver;
+  els.waitMorning.classList.toggle('hidden', open || state.gameOver);
   els.price.textContent = state.price;
   els.priceSlider.value = state.price;
   els.buyChance.textContent = `${Math.round(buyChance() * 100)}%`;
@@ -387,6 +389,21 @@ function upgrade(key) {
   render();
 }
 
+// "Wait until morning" (issue #4): skip the closed phase in one click by
+// advancing the clock to the next 08:00. A pure time skip — no customers,
+// no income during the jump. Works while paused (it is an action, not a tick).
+function waitUntilMorning() {
+  if (isOpen() || state.gameOver) return;
+  const now = simDate();
+  const nextOpen = new Date(now.getFullYear(), now.getMonth(), now.getDate(), CONFIG.openHour, 0);
+  if (nextOpen <= now) {
+    nextOpen.setDate(nextOpen.getDate() + 1);
+  }
+  state.ticks += Math.round((nextOpen - now) / 60000 / CONFIG.clockMinutesPerTick);
+  handleDayBoundary(false); // closed before the jump, so this is always an opening
+  render();
+}
+
 function togglePause() {
   if (state.gameOver) return;
   state.paused = !state.paused;
@@ -419,10 +436,10 @@ function restart() {
 // TICK — the simulation loop. Runs once per second (CONFIG.tickIntervalMs).
 // Each tick: customers may arrive, then the game-over condition is checked.
 // ---------------------------------------------------------------------------
-function tick() {
-  if (state.gameOver || state.paused) return;
-  const wasOpen = isOpen();
-  state.ticks += 1;
+// Logs day/night boundary events (issue #2) and resets the day counters on
+// opening. Called after the clock advances, whether by tick() or by the
+// "Wait until morning" action (issue #4).
+function handleDayBoundary(wasOpen) {
   if (isOpen() && !wasOpen) {
     // The stall opens for a new day: start fresh day counters.
     state.dayCupsSold = 0;
@@ -433,6 +450,13 @@ function tick() {
     addLog('Closing time — the stall is now closed.');
     addLog(`Today: ${state.dayCupsSold} cups sold, $${state.dayEarned} earned.`);
   }
+}
+
+function tick() {
+  if (state.gameOver || state.paused) return;
+  const wasOpen = isOpen();
+  state.ticks += 1;
+  handleDayBoundary(wasOpen);
   maybeCustomerArrives();
   checkGameOver();
   render();
@@ -533,6 +557,7 @@ function init() {
   els.upgradeQuality.addEventListener('click', () => upgrade('quality'));
   els.upgradeStall.addEventListener('click', () => upgrade('stall'));
   els.pause.addEventListener('click', togglePause);
+  els.waitMorning.addEventListener('click', waitUntilMorning);
   els.restart.addEventListener('click', restart);
   wireTooltips();
   setInterval(tick, CONFIG.tickIntervalMs);

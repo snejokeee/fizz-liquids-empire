@@ -2,7 +2,7 @@
 
 Version: 0.0.1 (MVP — playable)
 Date: 2026-08-25
-Status: implemented — roadmap steps 1–6, 8 and 9 are done; numbers are a first
+Status: implemented — roadmap steps 1–6 and 8–10 are done; numbers are a first
 balance pass and will be tuned after playtesting (step 7).
 
 ---
@@ -85,6 +85,7 @@ state = {
 | Ingredient cost | $2 per cup → restock 10 cups = $20 |
 | Default price | $5 (player range $1–$10) |
 | Gross margin at default | $3 per cup |
+| Clock speed | 10 in-game minutes per tick (1 tick = 1 real second) |
 | Quality upgrade | +10 quality per level, base $30, ×1.6 per level |
 | Stall upgrade | +10 attractiveness per level, base $25, ×1.6 per level |
 
@@ -106,12 +107,14 @@ At start (attractiveness 10): ~0.12/s → about 7 customers per minute.
 Fully upgraded (100): ~0.3/s → about 18 per minute.
 
 **Opening hours (day/night cycle)** — the stall is open from 08:00 to 23:00
-in-game time (1 tick = 1 minute). While closed, no customers arrive (hard gate,
-zero traffic at night). The header shows an OPEN/CLOSED badge; boundary events
-are logged ("The stall opens for the day!" / "Closing time — the stall is now
-closed.") and at closing the day is recapped ("Today: X cups sold, $Y earned.").
-The clock starts at 08:00 so a new game opens immediately. Numbers live in
-CONFIG: `openHour = 8`, `closeHour = 23`, `clockStart.hour = 8`.
+in-game time (1 tick = 10 minutes). While closed, no customers arrive (hard
+gate, zero traffic at night). The header shows an OPEN/CLOSED badge; boundary
+events are logged ("The stall opens for the day!" / "Closing time — the stall
+is now closed.") and at closing the day is recapped ("Today: X cups sold, $Y
+earned."). The clock starts at 08:00 so a new game opens immediately. A
+"Wait until morning" button in the header skips the night in one click,
+jumping to the next 08:00. Numbers live in CONFIG: `openHour = 8`,
+`closeHour = 23`, `clockStart.hour = 8`, `clockMinutesPerTick = 10`.
 
 **Phase-gated actions** — the clock also gates what the player can do: restock
 works only while the stall is open (day), upgrades only while it is closed
@@ -217,7 +220,7 @@ Follows AGENTS.md: **state holds the truth, render draws it, actions change it.*
 
 ## 12. Implementation Roadmap (small steps)
 
-Status: steps 1–6, 8 and 9 implemented — the MVP plus the day/night cycle is
+Status: steps 1–6 and 8–10 implemented — the MVP plus the day/night cycle is
 playable in the browser. Step 7 (balance pass) is an ongoing tuning task as
 the game is playtested.
 
@@ -241,6 +244,9 @@ the game is playtested.
 9. ✅ **Phase-gated actions** — restock enabled only while open, upgrades only
    while closed; disabled buttons state the phase in their label and blocked
    clicks are explained in the log. *(learning: time-based action rules)*
+10. ✅ **Wait until morning** — a header button visible only while closed jumps
+    the clock to the next 08:00, skipping the night in one click. *(learning:
+    time skipping, player convenience)*
 
 Each step leaves the game runnable in the browser.
 
