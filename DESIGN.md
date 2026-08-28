@@ -1,9 +1,9 @@
 # Fizz Liquids Empire — Design Document
 
-Version: 0.0.1 (MVP — playable)
+Version: 0.0.1
 Date: 2026-08-25
-Status: implemented — roadmap steps 1–6 and 8–11 are done; numbers are a first
-balance pass and will be tuned after playtesting (step 7).
+Status: implemented and playable in the browser; numbers are a first balance
+pass, tuned by playtesting.
 
 ---
 
@@ -48,10 +48,10 @@ tick (1s)
        └─ customer decides to buy      (based on quality vs. price)
             ├─ buys  → money += price, stock -= 1, reputation += 1
             └─ leaves → nothing (logged)
-player actions (any time)
-  ├─ set price
-  ├─ restock ingredients
-  └─ buy upgrades (quality, stall)
+player actions (phase-gated by day/night)
+  ├─ set price (any time)
+  ├─ restock ingredients (day only)
+  └─ buy upgrades (quality, stall) — night only
 ```
 
 This maps directly onto the project architecture: `state → render → actions`.
@@ -72,6 +72,7 @@ state = {
   dayEarned:      0,   // today's revenue (daily recap at closing)
   upgrades: { quality: 0, stall: 0 }, // current upgrade levels
   ticks:         0,   // the simulation clock (1 tick = 1 second)
+  paused:        false, // true while the simulation is paused
   gameOver:      false
 }
 ```
@@ -183,6 +184,7 @@ Titles are display-only. No new mechanics — just reward for the grind.
 ```
 ┌──────────────────────────────────────────────┐
 │  FIZZ LIQUIDS EMPIRE        [Sidewalk Stall]  │  ← header title updates with milestones
+│  [OPEN] 08:00 01/08/1990  [Pause] [Wait…]     │  ← timeline: badge, clock, skip controls
 ├──────────────┬──────────────┬────────────────┤
 │  Stall       │  Upgrades    │  Event Log     │
 │  Money: $50  │  Quality: 50 │  > A customer  │
@@ -219,42 +221,20 @@ map of the codebase.
 Follows AGENTS.md: **state holds the truth, render draws it, actions change it.**
 `CONFIG` holds every tunable number from sections 5–6.
 
-## 12. Implementation Roadmap (small steps)
+## 12. Implementation Status
 
-Status: steps 1–6 and 8–11 implemented — the MVP plus the day/night cycle is
-playable in the browser. Step 7 (balance pass) is an ongoing tuning task as
-the game is playtested.
+The game is playable in the browser. Implemented so far:
 
-1. ✅ **Static page** — `index.html` + `style.css` + `game.js`, render a hardcoded
-   state (money, stock, price) so the layout exists. *(learning: HTML/CSS)*
-2. ✅ **State → render** — define `state` and a `render()` that redraws the numbers;
-   add temporary debug buttons (+$10, +1 stock) to prove it. *(learning: state
-   management, DOM updates)*
-3. ✅ **Tick loop** — `setInterval(1s)`; log each tick on screen. *(learning: game
-   ticks / simulation loops)*
-4. ✅ **Customers & sales** — arrival probability, buy decision, money/stock/reputation
-   changes, event log. *(learning: randomness, simulation)*
-5. ✅ **Player actions** — price slider, restock, two upgrades with costs. *(learning:
-   event handling, affordability checks)*
-6. ✅ **Game over + restart** — bankruptcy check, overlay, reset. *(learning: win/lose
-   flow)*
-7. **Balance pass** — play it, tune CONFIG numbers. *(learning: game balance)*
-8. ✅ **Opening hours (day/night cycle)** — CONFIG.openHour/closeHour, hard-gated
-   arrivals at night, OPEN/CLOSED badge in the header, boundary log lines and a
-   daily recap at closing. *(learning: derived state, time-based rules)*
-9. ✅ **Phase-gated actions** — restock enabled only while open, upgrades only
-   while closed; disabled buttons state the phase in their label and blocked
-   clicks are explained in the log. *(learning: time-based action rules)*
-10. ✅ **Fast-forward to the next day boundary** — a header button skips dead
-    time in one click: while open it waits until closing (23:00), while closed
-    it waits until the next morning (08:00). *(learning: time skipping, player
-    convenience)*
-11. ✅ **Smoke tests** — `tests/smoke.js`: plain Node, no dependencies. Runs
-    game.js with a stubbed DOM and deterministic randomness, covering the
-    clock/opening hours, phase gating and the fast-forward skip. *(learning:
-    regression testing)*
+- Core MVP — static page, state → render, tick loop (1/s), customers & sales,
+  player actions (price, restock, upgrades), game over + restart
+- Day/night opening hours (08:00–23:00) — OPEN/CLOSED badge, daily recap at closing
+- Phase-gated actions — restock by day, upgrades at night
+- Fast-forward to the next day boundary — day → closing / night → morning
+- Smoke tests (`tests/smoke.js`)
+- Balance pass — ongoing, tune CONFIG by playtesting
 
-Each step leaves the game runnable in the browser.
+Each feature landed as one small, self-contained step that left the game
+runnable in the browser.
 
 ## 13. Tuning Rules
 

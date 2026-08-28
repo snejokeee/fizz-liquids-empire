@@ -51,9 +51,9 @@ What exists:
 - vanilla HTML/CSS/JS — no frameworks, no build tools
 - three game files: `index.html`, `style.css`, `game.js`
 - smoke tests for the game logic: `tests/smoke.js` — run with `node tests/smoke.js`
-- real-time simulation: 1 tick per second
-- customers arrive and decide to buy based on drink quality vs. price
-- player actions: price slider, restock, two upgrades (Better Recipe, Nicer Stall)
+- real-time simulation (1 tick/s), customers, sales, event log
+- player actions: price slider, restock (day), two upgrades (night)
+- day/night cycle (08:00–23:00), OPEN/CLOSED badge, daily recap, fast-forward to the next day boundary
 - reputation, company-title milestones, game over + restart
 
 The learning focus is still fundamentals, not tooling — new tools are added
@@ -70,7 +70,6 @@ Later, as knowledge grows, the project may evolve to include:
 - modules
 - small libraries
 - save/load systems
-- tests
 - build tools
 - more advanced architecture
 
