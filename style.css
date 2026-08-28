@@ -89,6 +89,18 @@ main {
   margin: 0.5rem 0;
 }
 
+/* Upgrade rows: full-width button with the help icon next to it */
+.upgrade-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.upgrade-row button {
+  flex: 1;
+  margin-top: 0;
+}
+
 .muted {
   color: var(--muted);
   font-size: 0.85rem;
@@ -161,4 +173,77 @@ button:disabled {
 
 .hidden {
   display: none;
+}
+
+/* Tooltip help icons - small question marks next to stats */
+.help-icon {
+  margin-left: 0.35rem;
+  background: var(--accent);
+  color: white;
+  font-size: 0.65rem;
+  line-height: 1;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  text-align: center;
+  cursor: help;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.help-icon:hover {
+  background: var(--ink);
+  opacity: 1;
+}
+
+/* Tooltip bubble - appears on hover */
+.tooltip {
+  position: fixed; /* positioned with viewport coordinates in JS */
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+  max-width: 280px;
+  z-index: 100;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.tooltip.visible {
+  opacity: 1;
+}
+
+/* Tooltip header with icon */
+.tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.25rem;
+  font-weight: 600;
+}
+
+.tooltip-icon {
+  color: var(--accent);
+}
+
+/* Tooltip stats list */
+.tooltip-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin-left: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.tooltip-stats div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem; /* keeps label and value apart even when space runs out */
 }

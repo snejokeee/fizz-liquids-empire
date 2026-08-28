@@ -21,20 +21,51 @@
       <h2>Stall — Fizzy Lemonade</h2>
       <p>Money: <strong>$<span id="money">0</span></strong></p>
       <p>Stock: <strong><span id="stock">0</span> cups</strong></p>
-      <p>Reputation: <strong><span id="reputation">0</span></strong></p>
+      <p>
+        Reputation: <strong>
+          <span id="reputation">0</span>
+          <span class="tooltip" id="tooltip-reputation"></span>
+          <span class="help-icon" data-tooltip="tooltip-reputation">?</span>
+        </strong>
+      </p>
 
       <label for="price-slider">Price: <strong>$<span id="price">0</span></strong> per cup</label>
       <input type="range" id="price-slider" min="1" max="10" step="1" value="5">
-      <p>Buy chance: <strong id="buy-chance">0%</strong></p>
+      <p>
+        Buy chance: <strong id="buy-chance">0%</strong>
+        <span class="tooltip" id="tooltip-buy-chance"></span>
+        <span class="help-icon" data-tooltip="tooltip-buy-chance">?</span>
+      </p>
 
       <button id="restock">Restock</button>
     </section>
 
     <section class="panel">
       <h2>Upgrades</h2>
-      <p>Quality: <strong><span id="quality">0</span></strong> · Attractiveness: <strong><span id="attractiveness">0</span></strong></p>
-      <button id="upgrade-quality">Better Recipe</button>
-      <button id="upgrade-stall">Nicer Stall</button>
+      <p>
+        Quality: <strong>
+          <span id="quality">0</span>
+          <span class="tooltip" id="tooltip-quality"></span>
+          <span class="help-icon" data-tooltip="tooltip-quality">?</span>
+        </strong>
+      </p>
+      <p>
+        Attractiveness: <strong>
+          <span id="attractiveness">0</span>
+          <span class="tooltip" id="tooltip-attractiveness"></span>
+          <span class="help-icon" data-tooltip="tooltip-attractiveness">?</span>
+        </strong>
+      </p>
+      <p class="upgrade-row">
+        <button id="upgrade-quality">Better Recipe</button>
+        <span class="tooltip" id="tooltip-upgrade-quality"></span>
+        <span class="help-icon" data-tooltip="tooltip-upgrade-quality">?</span>
+      </p>
+      <p class="upgrade-row">
+        <button id="upgrade-stall">Nicer Stall</button>
+        <span class="tooltip" id="tooltip-upgrade-stall"></span>
+        <span class="help-icon" data-tooltip="tooltip-upgrade-stall">?</span>
+      </p>
     </section>
 
     <section class="panel">

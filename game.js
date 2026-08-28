@@ -159,6 +159,134 @@ function formatClock() {
 }
 
 // ---------------------------------------------------------------------------
+// TOOLTIPS — hover help for stats, buy chance and upgrades.
+// Content is built from CONFIG/state on hover, so it always matches the
+// numbers the player sees; nothing here is hardcoded.
+// ---------------------------------------------------------------------------
+function fmtPct(value) {
+  return `${Math.round(value * 100)}%`;
+}
+
+function fmtSignedPct(value) {
+  const sign = value >= 0 ? '+' : '-';
+  return `${sign}${Math.round(Math.abs(value) * 100)}%`;
+}
+
+// The buy chance formula (DESIGN.md §6), split into its four parts so the
+// tooltip can show where the final percentage comes from.
+function buyChanceBreakdown() {
+  return {
+    base: CONFIG.buyChanceBase,
+    quality: state.quality / CONFIG.buyChanceDenominator,
+    price: -(state.price * CONFIG.buyChancePriceWeight) / CONFIG.buyChanceDenominator,
+    reputation: state.reputation / CONFIG.reputationBonusDenominator,
+    total: buyChance(), // already clamped to [min, max]
+  };
+}
+
+function tooltipReputationHTML() {
+  const effect = state.reputation / CONFIG.reputationBonusDenominator;
+  return `
+    <div class="tooltip-header"><span class="tooltip-icon">●</span> Reputation</div>
+    <div class="tooltip-stats">
+      <div><span>Current</span><span>${state.reputation} / ${CONFIG.reputationMax}</span></div>
+      <div><span>Buy chance bonus</span><span>+${fmtPct(effect)}</span></div>
+      <div><span>Per sale</span><span>+${CONFIG.reputationPerSale}</span></div>
+    </div>`;
+}
+
+function tooltipQualityHTML() {
+  const effect = state.quality / CONFIG.buyChanceDenominator;
+  return `
+    <div class="tooltip-header"><span class="tooltip-icon">●</span> Quality</div>
+    <div class="tooltip-stats">
+      <div><span>Current</span><span>${state.quality}</span></div>
+      <div><span>Buy chance bonus</span><span>+${fmtPct(effect)}</span></div>
+      <div><span>Raised by</span><span>${CONFIG.upgrades.quality.name} (+${CONFIG.upgrades.quality.effect})</span></div>
+    </div>`;
+}
+
+function tooltipAttractivenessHTML() {
+  const arrival = CONFIG.customerArrivalBase
+    + state.attractiveness * CONFIG.customerArrivalPerAttractiveness;
+  return `
+    <div class="tooltip-header"><span class="tooltip-icon">●</span> Attractiveness</div>
+    <div class="tooltip-stats">
+      <div><span>Current</span><span>${state.attractiveness}</span></div>
+      <div><span>Arrival chance/tick</span><span>${fmtPct(arrival)}</span></div>
+      <div><span>Base chance</span><span>${fmtPct(CONFIG.customerArrivalBase)}</span></div>
+      <div><span>Raised by</span><span>${CONFIG.upgrades.stall.name} (+${CONFIG.upgrades.stall.effect})</span></div>
+    </div>`;
+}
+
+function tooltipBuyChanceHTML() {
+  const b = buyChanceBreakdown();
+  return `
+    <div class="tooltip-header"><span class="tooltip-icon">●</span> Buy chance</div>
+    <div class="tooltip-stats">
+      <div><span>Base</span><span>+${fmtPct(b.base)}</span></div>
+      <div><span>Quality</span><span>${fmtSignedPct(b.quality)}</span></div>
+      <div><span>Price</span><span>${fmtSignedPct(b.price)}</span></div>
+      <div><span>Reputation</span><span>${fmtSignedPct(b.reputation)}</span></div>
+      <div><span>Total</span><span>${fmtPct(b.total)}</span></div>
+    </div>`;
+}
+
+function tooltipUpgradeHTML(key) {
+  const def = CONFIG.upgrades[key];
+  const level = state.upgrades[key];
+  let invested = 0;
+  for (let i = 0; i < level; i += 1) {
+    invested += Math.round(def.baseCost * Math.pow(def.growth, i));
+  }
+  return `
+    <div class="tooltip-header"><span class="tooltip-icon">●</span> ${def.name}</div>
+    <div class="tooltip-stats">
+      <div><span>Level</span><span>${level}</span></div>
+      <div><span>Bonus</span><span>+${level * def.effect} ${def.stat}</span></div>
+      <div><span>Invested so far</span><span>$${invested}</span></div>
+      <div><span>Next level</span><span>$${upgradeCost(key)}</span></div>
+    </div>`;
+}
+
+// Which content builder each tooltip element (by id) uses.
+const TOOLTIP_CONTENT = {
+  'tooltip-reputation': tooltipReputationHTML,
+  'tooltip-quality': tooltipQualityHTML,
+  'tooltip-attractiveness': tooltipAttractivenessHTML,
+  'tooltip-buy-chance': tooltipBuyChanceHTML,
+  'tooltip-upgrade-quality': () => tooltipUpgradeHTML('quality'),
+  'tooltip-upgrade-stall': () => tooltipUpgradeHTML('stall'),
+};
+
+function positionTooltipAt(tooltip, x, y) {
+  const margin = 12;
+  let left = x + margin;
+  let top = y + margin;
+  if (left + tooltip.offsetWidth > window.innerWidth) {
+    left = x - margin - tooltip.offsetWidth;
+  }
+  if (top + tooltip.offsetHeight > window.innerHeight) {
+    top = y - margin - tooltip.offsetHeight;
+  }
+  tooltip.style.left = `${Math.max(8, left)}px`;
+  tooltip.style.top = `${Math.max(8, top)}px`;
+}
+
+function showTooltip(tooltip, x, y) {
+  positionTooltipAt(tooltip, x, y);
+  tooltip.classList.add('visible');
+}
+
+function hideTooltip(tooltip) {
+  tooltip.classList.remove('visible');
+}
+
+function hideAllTooltips() {
+  document.querySelectorAll('.tooltip.visible').forEach(hideTooltip);
+}
+
+// ---------------------------------------------------------------------------
 // RENDER — draws the current state into the UI. Called after every change,
 // so the page always mirrors state.
 // ---------------------------------------------------------------------------
@@ -302,6 +430,49 @@ function checkGameOver() {
 // INIT — wire up the page and draw the first frame.
 // The script tag sits at the end of <body>, so the DOM already exists here.
 // ---------------------------------------------------------------------------
+// Tooltip events: any element with data-tooltip (help icons) shows its
+// tooltip on hover and follows the cursor; taps toggle on touch devices.
+function wireTooltips() {
+  document.querySelectorAll('[data-tooltip]').forEach((icon) => {
+    const tooltip = document.getElementById(icon.dataset.tooltip);
+    const buildContent = TOOLTIP_CONTENT[icon.dataset.tooltip];
+    if (!tooltip || !buildContent) return;
+
+    icon.addEventListener('mouseenter', (event) => {
+      tooltip.innerHTML = buildContent();
+      showTooltip(tooltip, event.clientX, event.clientY);
+    });
+    icon.addEventListener('mousemove', (event) => {
+      positionTooltipAt(tooltip, event.clientX, event.clientY);
+    });
+    icon.addEventListener('mouseleave', () => hideTooltip(tooltip));
+
+    icon.addEventListener('touchstart', (event) => {
+      event.preventDefault();
+      const rect = icon.getBoundingClientRect();
+      if (tooltip.classList.contains('visible')) {
+        hideTooltip(tooltip);
+      } else {
+        hideAllTooltips();
+        tooltip.innerHTML = buildContent();
+        showTooltip(tooltip, rect.left + rect.width / 2, rect.bottom);
+      }
+    });
+    icon.addEventListener('touchend', (event) => {
+      event.preventDefault();
+      hideTooltip(tooltip);
+    });
+  });
+
+  // Tapping anywhere else closes any open tooltip (icon taps are handled
+  // above, so ignore events that start on a help icon).
+  document.addEventListener('touchstart', (event) => {
+    if (!event.target.closest('[data-tooltip]')) {
+      hideAllTooltips();
+    }
+  });
+}
+
 function init() {
   els.priceSlider.addEventListener('input', (event) => setPrice(Number(event.target.value)));
   els.restock.addEventListener('click', restock);
@@ -309,6 +480,7 @@ function init() {
   els.upgradeStall.addEventListener('click', () => upgrade('stall'));
   els.pause.addEventListener('click', togglePause);
   els.restart.addEventListener('click', restart);
+  wireTooltips();
   setInterval(tick, CONFIG.tickIntervalMs);
   render();
 }
