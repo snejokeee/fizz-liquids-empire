@@ -5,7 +5,7 @@
 // Change a value once and the whole game follows; nothing else needs editing.
 // ---------------------------------------------------------------------------
 const CONFIG = {
-  starterMoney: 50,
+  starterMoney: 40,
   starterStock: 10,
   starterQuality: 50,
   starterAttractiveness: 10,
@@ -14,12 +14,13 @@ const CONFIG = {
 
   // In-game clock (issue #1): the game starts at a fixed date/time and
   // advances clockMinutesPerTick per tick (1 tick = 1 real second).
-  clockStart: { year: 1990, month: 8, day: 1, hour: 8, minute: 0 },
+  clockStart: { year: 1990, month: 8, day: 1, hour: 6, minute: 0 },
   clockMinutesPerTick: 10, // 10 in-game minutes per real second (game speed)
 
   // Opening hours (issue #2): the stall is open from openHour (08:00) up to
   // closeHour (23:00). No customers arrive while closed. The clock starts at
-  // 08:00 so a new game opens immediately.
+  // 06:00 — two hours before opening — so a new game begins in the night
+  // phase: time to buy supplies before the first customer arrives.
   openHour: 8,
   closeHour: 23,
 
@@ -52,9 +53,12 @@ const CONFIG = {
   reputationMax: 100,
 
   // Upgrade definitions: key → { name, stat it raises, cost curve, effect per level }
+  // Base costs are deliberately steep (issue #5): with the starter money and
+  // one day of sales the player cannot afford an upgrade on the first night —
+  // the first upgrade is a multi-day "from zero to hero" goal.
   upgrades: {
-    quality: { name: 'Better Recipe', stat: 'quality', baseCost: 30, growth: 1.6, effect: 10 },
-    stall: { name: 'Nicer Stall', stat: 'attractiveness', baseCost: 25, growth: 1.6, effect: 10 },
+    quality: { name: 'Better Recipe', stat: 'quality', baseCost: 120, growth: 1.6, effect: 10 },
+    stall: { name: 'Nicer Stall', stat: 'attractiveness', baseCost: 100, growth: 1.6, effect: 10 },
   },
 
   maxLogEntries: 20,
@@ -359,9 +363,12 @@ function render() {
   els.reputation.textContent = state.reputation;
   els.clock.textContent = formatClock();
   const open = isOpen();
-  els.statusBadge.textContent = open ? 'OPEN' : 'CLOSED';
-  els.statusBadge.classList.toggle('open', open);
-  els.statusBadge.classList.toggle('closed', !open);
+  // The badge reflects the simulation phase: OPEN/CLOSED from the clock, or
+  // PAUSED when the player has stopped time — CLOSED is only about night hours.
+  els.statusBadge.textContent = state.paused ? 'PAUSED' : open ? 'OPEN' : 'CLOSED';
+  els.statusBadge.classList.toggle('open', !state.paused && open);
+  els.statusBadge.classList.toggle('closed', !state.paused && !open);
+  els.statusBadge.classList.toggle('paused', state.paused);
   els.timeline.classList.toggle('paused', state.paused);
   els.pause.textContent = state.paused ? 'Play' : 'Pause';
   els.pause.disabled = state.gameOver;

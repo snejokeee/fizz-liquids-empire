@@ -53,9 +53,9 @@ What exists:
 - smoke tests for the game logic: `tests/smoke.js` — run with `node tests/smoke.js`
 - real-time simulation (1 tick/s), customers, sales, event log
 - player actions: price slider, restock (day), two upgrades (night)
-- day/night cycle (08:00–23:00), OPEN/CLOSED badge, daily recap, fast-forward to the next day boundary
+- day/night cycle: opens 08:00–23:00, game starts at 06:00 (pre-opening night shopping), OPEN/CLOSED badge, daily recap, fast-forward to the next day boundary
 - night supplies (lemons): buy lemons while closed, restock consumes money + lemons (production chain seed)
-- reputation, company-title milestones, game over + restart
+- reputation, company-title milestones, game over + restart; upgrades are priced so the first one is a multi-day goal ("from zero to hero")
 
 The learning focus is still fundamentals, not tooling — new tools are added
 only when they help learning or solve a real project need.
@@ -89,6 +89,8 @@ When working on this project:
 - explain why a solution works
 - focus on one small feature at a time
 - make sure the UI reflects the game state clearly
+- ALWAYS wait for the user's manual review and approval before suggesting a
+  commit or push — never propose committing or pushing changes unasked
 
 ## Working with Issues
 

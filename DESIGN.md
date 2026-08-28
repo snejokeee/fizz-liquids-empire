@@ -61,7 +61,7 @@ This maps directly onto the project architecture: `state → render → actions`
 
 ```js
 state = {
-  money:         50,   // starter balance ($)
+  money:         40,   // starter balance ($)
   stock:         10,   // cups ready to sell (free prototype batch)
   lemons:        0,    // supply crate — bought at night, consumed by restock
   price:         5,    // $ per cup (player can change 1..10)
@@ -83,7 +83,7 @@ state = {
 
 | Item | Value |
 |---|---|
-| Starter balance | $50 |
+| Starter balance | $40 |
 | Starting stock | 10 cups (free prototype batch) |
 | Lemon price | $1 each (bought at night, 10 per click = $10) |
 | Production cost | $1 per cup (the money part of restock) |
@@ -91,11 +91,13 @@ state = {
 | Default price | $5 (player range $1–$10) |
 | Gross margin at default | $3 per cup |
 | Clock speed | 10 in-game minutes per tick (1 tick = 1 real second) |
-| Quality upgrade | +10 quality per level, base $30, ×1.6 per level |
-| Stall upgrade | +10 attractiveness per level, base $25, ×1.6 per level |
+| Quality upgrade | +10 quality per level, base $120, ×1.6 per level |
+| Stall upgrade | +10 attractiveness per level, base $100, ×1.6 per level |
 
-Expected pacing at start (~$10 profit/min): first night of lemon shopping after
-the first day, first upgrade after ~3 min. Tunable later.
+Expected pacing at start (~$10 profit/min): the game opens at 06:00 in the
+closed phase, so the first act is night shopping; the first upgrade is a
+multi-day savings goal ("from zero to hero"), reachable after roughly 2–3
+days of selling in the best case. Tunable later.
 
 All numbers live in one `CONFIG` object in the code (see section 11) so balance
 changes are a single edit — that is also the *why* of the design.
@@ -113,14 +115,16 @@ Fully upgraded (100): ~0.3/s → about 18 per minute.
 
 **Opening hours (day/night cycle)** — the stall is open from 08:00 to 23:00
 in-game time (1 tick = 10 minutes). While closed, no customers arrive (hard
-gate, zero traffic at night). The header shows an OPEN/CLOSED badge; boundary
-events are logged ("The stall opens for the day!" / "Closing time — the stall
-is now closed.") and at closing the day is recapped ("Today: X cups sold, $Y
-earned."). The clock starts at 08:00 so a new game opens immediately. A
-fast-forward button in the header skips dead time in one click: while open it
-waits until closing (23:00), while closed it waits until the next morning
-(08:00). Numbers live in CONFIG: `openHour = 8`,
-`closeHour = 23`, `clockStart.hour = 8`, `clockMinutesPerTick = 10`.
+gate, zero traffic at night). The header shows an OPEN/CLOSED badge — CLOSED
+means night hours only; while the simulation is paused the badge shows PAUSED —
+boundary events are logged ("The stall opens for the day!" / "Closing time — the
+stall is now closed.") and at closing the day is recapped ("Today: X cups sold,
+$Y earned."). The clock starts at **06:00** — two hours before opening — so a new
+game begins in the closed phase with time to buy supplies before the first
+customer arrives. A fast-forward button in the header skips dead time in one
+click: while open it waits until closing (23:00), while closed it waits until
+the next morning (08:00). Numbers live in CONFIG: `openHour = 8`,
+`closeHour = 23`, `clockStart.hour = 6`, `clockMinutesPerTick = 10`.
 
 **Phase-gated actions** — the clock also gates what the player can do: restock
 works only while the stall is open (day), upgrades only while it is closed
@@ -135,6 +139,12 @@ lemons by night, restock the next morning*. If the crate is short, restock is
 blocked and the log explains the shortage. The game-over rule accounts for the
 full chain: with no stock you must be able to afford both the restock money
 and the missing lemons (DESIGN.md §9).
+
+**From zero to hero** — upgrade prices are deliberately steep relative to the
+starter budget: even a flawless first day (selling all 10 free cups) leaves
+the player short of the cheapest upgrade, so nothing can be upgraded on the
+first night. The first upgrade is a multi-day goal, which makes growth feel
+earned and keeps the early game about learning to sell and restock.
 
 **Buy decision** — a customer buys with probability:
 
@@ -157,8 +167,8 @@ shows "Sold out!". This teaches inventory pressure without extra systems.
 
 | Upgrade | Effect | Cost | Growth per level |
 |---|---|---|---|
-| Better Recipe | quality +10 | $30 | ×1.6 |
-| Nicer Stall | attractiveness +10 | $25 | ×1.6 |
+| Better Recipe | quality +10 | $120 | ×1.6 |
+| Nicer Stall | attractiveness +10 | $100 | ×1.6 |
 
 - Purchases are instant, single clicks, repeatable.
 - Cost formula: `cost(level) = base × growth^level`.
@@ -198,17 +208,17 @@ Titles are display-only. No new mechanics — just reward for the grind.
 ```
 ┌──────────────────────────────────────────────┐
 │  FIZZ LIQUIDS EMPIRE        [Sidewalk Stall]  │  ← header title updates with milestones
-│  [OPEN] 08:00 01/08/1990  [Pause] [Wait…]     │  ← timeline: badge, clock, skip controls
+│  [CLOSED] 06:00 01/08/1990 [Pause] [Wait…]    │  ← timeline: badge, clock, skip controls
 ├──────────────┬──────────────┬────────────────┤
 │  Stall       │  Upgrades    │  Event Log     │
-│  Money: $50  │  Quality: 50 │  > A customer  │
+│  Money: $40  │  Quality: 50 │  > A customer  │
 │  Stock: 10   │  Attract.: 10│    bought $5   │
 │  Reputation:0│  [Better     │  > walked away │
 │  Price: ===o-│   Recipe     │                │
-│    $5        │   +10 q —$30]│                │
+│    $5        │   +10 q —$120]│                │
 │  Buy chance: │  [Nicer      │                │
 │  50%         │   Stall      │                │
-│  [Restock    │   +10 a —$25]│                │
+│  [Restock    │   +10 a —$100]│               │
 │   10 — $10 + │              │                │
 │   10 lemons] │              │                │
 ├──────────────┼──────────────┴────────────────┤
@@ -251,6 +261,9 @@ The game is playable in the browser. Implemented so far:
 - Phase-gated actions — restock by day, upgrades at night
 - Night supplies (lemons) — night shopping, restock consumes money + lemons,
   game over accounts for the production chain (issue #5)
+- Game starts at 06:00 in the closed phase — pre-opening night shopping;
+  upgrade prices tuned so the first upgrade is a multi-day goal (no upgrading
+  on the first night)
 - Fast-forward to the next day boundary — day → closing / night → morning
 - Smoke tests (`tests/smoke.js`)
 - Balance pass — ongoing, tune CONFIG by playtesting
