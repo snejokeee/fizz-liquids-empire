@@ -7,7 +7,6 @@
 const CONFIG = {
   starterMoney: 40,
   starterStock: 10,
-  starterQuality: 50,
   starterAttractiveness: 10,
   defaultPrice: 5,
   tickIntervalMs: 1000, // one simulation tick per second
@@ -24,15 +23,17 @@ const CONFIG = {
   openHour: 8,
   closeHour: 23,
 
-  // Supplies (issue #5): lemons are bought at night and consumed by restock.
-  // The money+lemon split keeps the total cost of a batch the same as before
-  // (productionCost 1 + lemonPrice 1 per cup = old ingredientCost 2).
+  // Supplies (issue #5): lemons are bought at night and consumed by
+  // production. productionCost is the money part per cup; future stall
+  // upgrades will reduce both it and productionTicksPerCup.
   lemonPrice: 1, // $ per lemon
   lemonBatchSize: 10, // lemons per buy click
-  lemonPerCup: 1, // lemons consumed per cup produced
-  productionCost: 1, // $ per cup, the money part of restock
+  productionCost: 1, // $ per cup, the money part of auto-restock
+  productionTicksPerCup: 3, // ticks to produce one cup (future stall upgrades reduce this)
 
-  restockBatchSize: 10, // cups per restock button press
+  // The stall holds at most stockCapacity cups; auto-restock refills it while
+  // supplies allow. Future stall upgrades will raise the capacity.
+  stockCapacity: 10,
 
   // Customer arrival chance per tick (DESIGN.md §6):
   //   base + attractiveness × perAttractiveness
@@ -52,14 +53,22 @@ const CONFIG = {
   reputationPerSale: 1,
   reputationMax: 100,
 
-  // Upgrade definitions: key → { name, stat it raises, cost curve, effect per level }
-  // Base costs are deliberately steep (issue #5): with the starter money and
-  // one day of sales the player cannot afford an upgrade on the first night —
-  // the first upgrade is a multi-day "from zero to hero" goal.
-  upgrades: {
-    quality: { name: 'Better Recipe', stat: 'quality', baseCost: 120, growth: 1.6, effect: 10 },
-    stall: { name: 'Nicer Stall', stat: 'attractiveness', baseCost: 100, growth: 1.6, effect: 10 },
-  },
+  // Recipe progression (the upgrade path): 5 tiers, each with a name, its
+  // ingredient list (flavor for now — lemons stay the only purchasable supply),
+  // the drink quality it sets, and its unlock cost. Quality drives buy chance
+  // (see buyChance), so every tier also raises the buy chance. Costs are
+  // deliberately steep (issue #5): a normal first day (~$80–90) cannot afford
+  // the first unlock on night 1 — the first recipe is a multi-day goal.
+  // lemonsPerCup: how many lemons one cup of this recipe needs. Higher tiers
+  // cost more to produce (balanced by their higher quality → buy chance);
+  // running low on lemons makes the stall fall back to a cheaper recipe.
+  recipes: [
+    { name: 'Fizzy Lemonade', ingredients: 'water + lemon', quality: 50, cost: 0, lemonsPerCup: 1 },
+    { name: 'Iced Lemon Fizz', ingredients: 'water + lemon + ice', quality: 60, cost: 250, lemonsPerCup: 1 },
+    { name: 'Citrus Sparkle', ingredients: 'water + lemon + ice + lime', quality: 70, cost: 600, lemonsPerCup: 2 },
+    { name: 'Golden Citrus Punch', ingredients: 'water + lemon + lime + orange', quality: 80, cost: 1300, lemonsPerCup: 2 },
+    { name: 'Empire Signature', ingredients: 'citrus blend + secret syrup', quality: 90, cost: 2500, lemonsPerCup: 3 },
+  ],
 
   maxLogEntries: 20,
 };
@@ -79,16 +88,17 @@ const TITLES = [
 const state = {
   money: CONFIG.starterMoney,
   stock: CONFIG.starterStock,
-  lemons: 0, // supply crate: bought at night, consumed by restock (issue #5)
+  lemons: 0, // supply crate: bought at night, consumed by production (issue #5)
   price: CONFIG.defaultPrice,
-  quality: CONFIG.starterQuality,
-  attractiveness: CONFIG.starterAttractiveness,
+  attractiveness: CONFIG.starterAttractiveness, // fixed for now — the stall upgrade was cut
   reputation: 0,
   cupsSold: 0,
   totalEarned: 0,
   dayCupsSold: 0, // today's sales, reset when the stall opens (issue #2)
   dayEarned: 0, // today's revenue, reset when the stall opens (issue #2)
-  upgrades: { quality: 0, stall: 0 },
+  recipeLevel: 1, // highest unlocked recipe tier (1..5); unlocks are night actions
+  servedLevel: 1, // recipe the stall serves (1..recipeLevel); chosen in the UI
+  restockProgress: 0, // ticks worked toward the next auto-produced cup
   ticks: 0, // the simulation clock, incremented by tick()
   paused: false, // when true, tick() skips the simulation (issue #1)
   gameOver: false,
@@ -111,12 +121,16 @@ const els = {
   price: document.getElementById('price'),
   buyChance: document.getElementById('buy-chance'),
   priceSlider: document.getElementById('price-slider'),
-  restock: document.getElementById('restock'),
+  recipeSelect: document.getElementById('recipe-select'),
+  servingNote: document.getElementById('serving-note'),
+  productionStatus: document.getElementById('production-status'),
   buyLemons: document.getElementById('buy-lemons'),
   quality: document.getElementById('quality'),
   attractiveness: document.getElementById('attractiveness'),
-  upgradeQuality: document.getElementById('upgrade-quality'),
-  upgradeStall: document.getElementById('upgrade-stall'),
+  drinkName: document.getElementById('drink-name'),
+  recipeName: document.getElementById('recipe-name'),
+  recipeIngredients: document.getElementById('recipe-ingredients'),
+  upgradeRecipe: document.getElementById('upgrade-recipe'),
   companyTitle: document.getElementById('company-title'),
   logList: document.getElementById('log-list'),
   gameOverOverlay: document.getElementById('game-over'),
@@ -140,33 +154,68 @@ function addLog(message) {
   }
 }
 
-function restockCost() {
-  return CONFIG.restockBatchSize * CONFIG.productionCost;
-}
-
 function lemonBatchCost() {
   return CONFIG.lemonBatchSize * CONFIG.lemonPrice;
 }
 
-function lemonsPerBatch() {
-  return CONFIG.restockBatchSize * CONFIG.lemonPerCup;
+// The recipe the player selected in the serving dropdown.
+function servedRecipe() {
+  return CONFIG.recipes[state.servedLevel - 1];
 }
 
-// True when the player can produce a fresh batch: the restock money cost plus
-// the lemons they would still have to buy at night (issue #5).
-function canProduceBatch() {
-  const missingLemons = Math.max(0, lemonsPerBatch() - state.lemons);
-  return state.money >= restockCost() + missingLemons * CONFIG.lemonPrice;
+// What the stall actually serves: the selected recipe, or — when the crate
+// lacks the lemons it needs — the highest unlocked recipe at or below it
+// that is still producible (fallback). The base recipe is the floor.
+function effectiveRecipe() {
+  for (let level = state.servedLevel; level >= 1; level -= 1) {
+    if (state.lemons >= CONFIG.recipes[level - 1].lemonsPerCup) {
+      return CONFIG.recipes[level - 1];
+    }
+  }
+  return CONFIG.recipes[0];
 }
 
-function upgradeCost(key) {
-  const def = CONFIG.upgrades[key];
-  return Math.round(def.baseCost * Math.pow(def.growth, state.upgrades[key]));
+function isFallingBack() {
+  return effectiveRecipe() !== servedRecipe();
+}
+
+// One-line state of the auto-restock line in the Stall panel.
+function productionStatusText() {
+  if (state.stock >= CONFIG.stockCapacity) return 'Stock full';
+  if (state.money < CONFIG.productionCost) return 'Not enough money to produce';
+  if (state.lemons < effectiveRecipe().lemonsPerCup) return 'Waiting for lemons';
+  return `Restocking… ${state.restockProgress}/${CONFIG.productionTicksPerCup}`;
+}
+
+// True when the player can produce even one cup: the production money plus a
+// lemon if the crate is empty (they could buy one at night). The game-over
+// bar is one cup — below it there is no way to earn (issue #5).
+function canProduceCup() {
+  const needsLemon = state.lemons < 1;
+  return state.money >= CONFIG.productionCost + (needsLemon ? CONFIG.lemonPrice : 0);
+}
+
+function currentRecipe() {
+  return CONFIG.recipes[state.recipeLevel - 1];
+}
+
+// The next tier to unlock; undefined once every recipe is mastered.
+function nextRecipe() {
+  return CONFIG.recipes[state.recipeLevel];
+}
+
+function recipeUnlockCost() {
+  const next = nextRecipe();
+  return next ? next.cost : 0;
+}
+
+function recipeMastered() {
+  return state.recipeLevel >= CONFIG.recipes.length;
 }
 
 function buyChance() {
   const score = CONFIG.buyChanceBase
-    + (state.quality - state.price * CONFIG.buyChancePriceWeight) / CONFIG.buyChanceDenominator
+    + (effectiveRecipe().quality - state.price * CONFIG.buyChancePriceWeight) / CONFIG.buyChanceDenominator
     + state.reputation / CONFIG.reputationBonusDenominator;
   return clamp(score, CONFIG.buyChanceMin, CONFIG.buyChanceMax);
 }
@@ -232,7 +281,7 @@ function fmtSignedPct(value) {
 function buyChanceBreakdown() {
   return {
     base: CONFIG.buyChanceBase,
-    quality: state.quality / CONFIG.buyChanceDenominator,
+    quality: effectiveRecipe().quality / CONFIG.buyChanceDenominator,
     price: -(state.price * CONFIG.buyChancePriceWeight) / CONFIG.buyChanceDenominator,
     reputation: state.reputation / CONFIG.reputationBonusDenominator,
     total: buyChance(), // already clamped to [min, max]
@@ -251,13 +300,17 @@ function tooltipReputationHTML() {
 }
 
 function tooltipQualityHTML() {
-  const effect = state.quality / CONFIG.buyChanceDenominator;
+  const recipe = effectiveRecipe();
+  const effect = recipe.quality / CONFIG.buyChanceDenominator;
+  const next = nextRecipe();
+  const nextGain = next ? `+${next.quality - currentRecipe().quality} quality` : '—';
   return `
     <div class="tooltip-header"><span class="tooltip-icon">●</span> Quality</div>
     <div class="tooltip-stats">
-      <div><span>Current</span><span>${state.quality}</span></div>
+      <div><span>Current</span><span>${recipe.quality}</span></div>
       <div><span>Buy chance bonus</span><span>+${fmtPct(effect)}</span></div>
-      <div><span>Raised by</span><span>${CONFIG.upgrades.quality.name} (+${CONFIG.upgrades.quality.effect})</span></div>
+      <div><span>From recipe</span><span>${recipe.name}</span></div>
+      <div><span>Next recipe adds</span><span>${nextGain}</span></div>
     </div>`;
 }
 
@@ -270,7 +323,7 @@ function tooltipAttractivenessHTML() {
       <div><span>Current</span><span>${state.attractiveness}</span></div>
       <div><span>Arrival chance/tick</span><span>${fmtPct(arrival)}</span></div>
       <div><span>Base chance</span><span>${fmtPct(CONFIG.customerArrivalBase)}</span></div>
-      <div><span>Raised by</span><span>${CONFIG.upgrades.stall.name} (+${CONFIG.upgrades.stall.effect})</span></div>
+      <div><span>Fixed for now</span><span>stall upgrades come later</span></div>
     </div>`;
 }
 
@@ -288,29 +341,41 @@ function tooltipBuyChanceHTML() {
 }
 
 function tooltipLemonsHTML() {
+  const recipe = servedRecipe();
   return `
     <div class="tooltip-header"><span class="tooltip-icon">●</span> Lemons</div>
     <div class="tooltip-stats">
       <div><span>Price</span><span>$${CONFIG.lemonPrice} each</span></div>
-      <div><span>Restock uses</span><span>${CONFIG.lemonPerCup} per cup</span></div>
+      <div><span>${recipe.name} needs</span><span>${recipe.lemonsPerCup} per cup</span></div>
       <div><span>Bought</span><span>only while closed</span></div>
     </div>`;
 }
 
-function tooltipUpgradeHTML(key) {
-  const def = CONFIG.upgrades[key];
-  const level = state.upgrades[key];
-  let invested = 0;
-  for (let i = 0; i < level; i += 1) {
-    invested += Math.round(def.baseCost * Math.pow(def.growth, i));
-  }
+// The recipe ladder (DESIGN.md §7): every tier with its quality and unlock
+// cost, so the player can see the whole progression at a glance.
+function tooltipRecipeHTML() {
+  const rows = CONFIG.recipes.map((recipe, i) => {
+    const unlocked = i < state.recipeLevel;
+    const cost = i === 0 ? 'starter' : `$${recipe.cost}`;
+    return `<div><span>${unlocked ? '✓ ' : ''}${recipe.name}</span><span>${recipe.quality} q · ${recipe.lemonsPerCup} lemon/cup · ${cost}</span></div>`;
+  }).join('');
   return `
-    <div class="tooltip-header"><span class="tooltip-icon">●</span> ${def.name}</div>
+    <div class="tooltip-header"><span class="tooltip-icon">●</span> Recipe progression</div>
     <div class="tooltip-stats">
-      <div><span>Level</span><span>${level}</span></div>
-      <div><span>Bonus</span><span>+${level * def.effect} ${def.stat}</span></div>
-      <div><span>Invested so far</span><span>$${invested}</span></div>
-      <div><span>Next level</span><span>$${upgradeCost(key)}</span></div>
+      ${rows}
+      <div><span>Each level adds</span><span>+10 quality / +5% buy chance</span></div>
+    </div>`;
+}
+
+function tooltipServingHTML() {
+  const recipe = servedRecipe();
+  const fallback = isFallingBack() ? effectiveRecipe() : null;
+  return `
+    <div class="tooltip-header"><span class="tooltip-icon">●</span> Serving</div>
+    <div class="tooltip-stats">
+      <div><span>Selected</span><span>${recipe.name}</span></div>
+      <div><span>Needs</span><span>${recipe.lemonsPerCup} lemon${recipe.lemonsPerCup === 1 ? '' : 's'} + $1 per cup</span></div>
+      <div><span>Fallback</span><span>${fallback ? `${fallback.name} (low on lemons)` : '—'}</span></div>
     </div>`;
 }
 
@@ -321,8 +386,8 @@ const TOOLTIP_CONTENT = {
   'tooltip-attractiveness': tooltipAttractivenessHTML,
   'tooltip-buy-chance': tooltipBuyChanceHTML,
   'tooltip-lemons': tooltipLemonsHTML,
-  'tooltip-upgrade-quality': () => tooltipUpgradeHTML('quality'),
-  'tooltip-upgrade-stall': () => tooltipUpgradeHTML('stall'),
+  'tooltip-recipe': tooltipRecipeHTML,
+  'tooltip-serving': tooltipServingHTML,
 };
 
 function positionTooltipAt(tooltip, x, y) {
@@ -358,7 +423,7 @@ function hideAllTooltips() {
 // ---------------------------------------------------------------------------
 function render() {
   els.money.textContent = state.money;
-  els.stock.textContent = state.stock;
+  els.stock.textContent = `${state.stock} / ${CONFIG.stockCapacity}`;
   els.lemons.textContent = state.lemons;
   els.reputation.textContent = state.reputation;
   els.clock.textContent = formatClock();
@@ -377,23 +442,41 @@ function render() {
   els.price.textContent = state.price;
   els.priceSlider.value = state.price;
   els.buyChance.textContent = `${Math.round(buyChance() * 100)}%`;
-  els.quality.textContent = state.quality;
+  const effective = effectiveRecipe();
+  els.quality.textContent = effective.quality;
   els.attractiveness.textContent = state.attractiveness;
+  els.drinkName.textContent = effective.name;
+  els.recipeName.textContent = effective.name;
+  els.recipeIngredients.textContent = effective.ingredients;
   els.companyTitle.textContent = companyTitle();
   els.finalCups.textContent = state.cupsSold;
 
-  // Phase gating (issue #3): restock is a day action, upgrades are night actions.
-  // Restock also needs lemons in the supply crate (issue #5).
+  // Phase gating (issue #3): recipe unlocks and supply shopping are night
+  // actions; the serving choice and auto-restock work any time.
   const affordable = (cost) => state.money >= cost && !state.gameOver;
-  const enoughLemons = state.lemons >= lemonsPerBatch();
-  els.restock.disabled = !open || !affordable(restockCost()) || !enoughLemons;
-  els.restock.textContent = `Restock ${CONFIG.restockBatchSize} cups — $${restockCost()} + ${lemonsPerBatch()} lemons${open ? '' : ' (only while open)'}`;
   els.buyLemons.disabled = open || !affordable(lemonBatchCost());
   els.buyLemons.textContent = `Buy ${CONFIG.lemonBatchSize} lemons — $${lemonBatchCost()}${open ? ' (only while closed)' : ''}`;
-  els.upgradeQuality.disabled = open || !affordable(upgradeCost('quality'));
-  els.upgradeQuality.textContent = `${CONFIG.upgrades.quality.name} (+${CONFIG.upgrades.quality.effect} quality) — $${upgradeCost('quality')}${open ? ' (only while closed)' : ''}`;
-  els.upgradeStall.disabled = open || !affordable(upgradeCost('stall'));
-  els.upgradeStall.textContent = `${CONFIG.upgrades.stall.name} (+${CONFIG.upgrades.stall.effect} attractiveness) — $${upgradeCost('stall')}${open ? ' (only while closed)' : ''}`;
+  const mastered = recipeMastered();
+  const next = nextRecipe();
+  els.upgradeRecipe.disabled = mastered || open || !affordable(recipeUnlockCost());
+  els.upgradeRecipe.textContent = mastered
+    ? 'All recipes mastered'
+    : `Unlock ${next.name} — $${recipeUnlockCost()}${open ? ' (only while closed)' : ''}`;
+
+  // Serving selector: one option per unlocked recipe, current served level selected.
+  const options = CONFIG.recipes
+    .slice(0, state.recipeLevel)
+    .map((recipe, i) => `<option value="${i + 1}">${recipe.name}</option>`)
+    .join('');
+  els.recipeSelect.innerHTML = options;
+  els.recipeSelect.value = String(state.servedLevel);
+  els.recipeSelect.disabled = state.gameOver;
+  if (isFallingBack()) {
+    els.servingNote.textContent = `Out of lemons for ${servedRecipe().name} — serving ${effective.name}.`;
+  } else {
+    els.servingNote.textContent = `${servedRecipe().name} — ${servedRecipe().lemonsPerCup} lemon${servedRecipe().lemonsPerCup === 1 ? '' : 's'} + $1 per cup`;
+  }
+  els.productionStatus.textContent = productionStatusText();
 }
 
 // ---------------------------------------------------------------------------
@@ -404,30 +487,15 @@ function setPrice(price) {
   render();
 }
 
-function restock() {
-  if (!isOpen()) {
-    addLog('Restock is only available while the stall is open.');
-    return;
-  }
-  const cost = restockCost();
-  if (state.money < cost) {
-    addLog(`Not enough money to restock ($${cost}).`);
-    return;
-  }
-  const lemons = lemonsPerBatch();
-  if (state.lemons < lemons) {
-    addLog(`Not enough lemons to restock (need ${lemons}, have ${state.lemons}). Buy lemons while the stall is closed.`);
-    return;
-  }
-  state.money -= cost;
-  state.lemons -= lemons;
-  state.stock += CONFIG.restockBatchSize;
-  addLog(`Restocked ${CONFIG.restockBatchSize} cups for $${cost} and ${lemons} lemons.`);
+// Which recipe the stall serves, chosen in the dropdown (1..recipeLevel).
+function setServedRecipe(level) {
+  state.servedLevel = Math.max(1, Math.min(state.recipeLevel, level));
   render();
 }
 
 // Night shopping (issue #5): while the stall is closed the player buys
-// supplies for the next day. Day actions are unchanged: sell + restock.
+// supplies for the next day. The day loop is unchanged: sell while
+// auto-restock keeps the cups coming.
 function buyLemons() {
   if (isOpen()) {
     addLog('Supplies are only available while the stall is closed.');
@@ -444,21 +512,26 @@ function buyLemons() {
   render();
 }
 
-function upgrade(key) {
-  const def = CONFIG.upgrades[key];
+// Recipe unlock (the upgrade path): night-gated like the old upgrades. Each
+// tier sets a new quality, which raises the buy chance (DESIGN.md §7).
+function upgradeRecipe() {
+  if (recipeMastered()) {
+    addLog('You already mastered every recipe.');
+    return;
+  }
   if (isOpen()) {
-    addLog(`${def.name} is only available while the stall is closed.`);
+    addLog('Recipe upgrades are only available while the stall is closed.');
     return;
   }
-  const cost = upgradeCost(key);
-  if (state.money < cost) {
-    addLog(`Not enough money for ${def.name} ($${cost}).`);
+  const next = nextRecipe();
+  if (state.money < next.cost) {
+    addLog(`Not enough money for ${next.name} ($${next.cost}).`);
     return;
   }
-  state.money -= cost;
-  state.upgrades[key] += 1;
-  state[def.stat] += def.effect;
-  addLog(`${def.name}! ${def.stat} is now ${state[def.stat]}.`);
+  state.money -= next.cost;
+  state.recipeLevel += 1;
+  state.servedLevel = state.recipeLevel; // serve the new best recipe by default
+  addLog(`Recipe unlocked: ${currentRecipe().name}! Quality is now ${currentRecipe().quality}.`);
   render();
 }
 
@@ -480,7 +553,11 @@ function skipToBoundary() {
   if (!wasOpen && target <= now) {
     target.setDate(target.getDate() + 1); // night: the next opening may be tomorrow
   }
-  state.ticks += Math.round((target - now) / 60000 / CONFIG.clockMinutesPerTick);
+  const skippedTicks = Math.round((target - now) / 60000 / CONFIG.clockMinutesPerTick);
+  state.ticks += skippedTicks;
+  for (let i = 0; i < skippedTicks; i += 1) {
+    autoRestockStep(); // time passes: supplies keep flowing into cups
+  }
   handleDayBoundary(wasOpen);
   render();
 }
@@ -497,14 +574,15 @@ function restart() {
     stock: CONFIG.starterStock,
     lemons: 0,
     price: CONFIG.defaultPrice,
-    quality: CONFIG.starterQuality,
     attractiveness: CONFIG.starterAttractiveness,
     reputation: 0,
     cupsSold: 0,
     totalEarned: 0,
     dayCupsSold: 0,
     dayEarned: 0,
-    upgrades: { quality: 0, stall: 0 },
+    recipeLevel: 1,
+    servedLevel: 1,
+    restockProgress: 0,
     ticks: 0,
     paused: false,
     gameOver: false,
@@ -534,11 +612,36 @@ function handleDayBoundary(wasOpen) {
   }
 }
 
+// Auto-restock: while the stall holds fewer cups than capacity and the crate
+// + wallet allow, one cup is produced every productionTicksPerCup ticks, at
+// productionCost plus the effective recipe's lemons per cup. Runs every tick
+// (day and night) and during fast-forward — deterministic, no randomness —
+// so buying lemons at night preps the stall for the morning. Future stall
+// upgrades will make it faster and cheaper.
+function autoRestockStep() {
+  if (state.stock >= CONFIG.stockCapacity) {
+    state.restockProgress = 0;
+    return;
+  }
+  const recipe = effectiveRecipe();
+  if (state.lemons < recipe.lemonsPerCup || state.money < CONFIG.productionCost) {
+    return; // wait for supplies — progress is kept
+  }
+  state.restockProgress += 1;
+  if (state.restockProgress >= CONFIG.productionTicksPerCup) {
+    state.restockProgress = 0;
+    state.money -= CONFIG.productionCost;
+    state.lemons -= recipe.lemonsPerCup;
+    state.stock += 1;
+  }
+}
+
 function tick() {
   if (state.gameOver || state.paused) return;
   const wasOpen = isOpen();
   state.ticks += 1;
   handleDayBoundary(wasOpen);
+  autoRestockStep();
   maybeCustomerArrives();
   checkGameOver();
   render();
@@ -576,12 +679,12 @@ function customerVisits() {
 }
 
 // ---------------------------------------------------------------------------
-// GAME OVER — you lose when you have nothing to sell and cannot produce a new
-// batch: restock money plus the lemons you would still need to buy (DESIGN.md
-// §9, issue #5). The overlay asks the player to restart.
+// GAME OVER — you lose when you have nothing to sell and cannot produce even
+// one cup: production money plus a lemon if the crate is empty (DESIGN.md §9,
+// issue #5). The overlay asks the player to restart.
 // ---------------------------------------------------------------------------
 function checkGameOver() {
-  if (state.stock === 0 && !canProduceBatch()) {
+  if (state.stock === 0 && !canProduceCup()) {
     state.gameOver = true;
     els.gameOverOverlay.classList.remove('hidden');
   }
@@ -636,10 +739,9 @@ function wireTooltips() {
 
 function init() {
   els.priceSlider.addEventListener('input', (event) => setPrice(Number(event.target.value)));
-  els.restock.addEventListener('click', restock);
+  els.recipeSelect.addEventListener('change', (event) => setServedRecipe(Number(event.target.value)));
   els.buyLemons.addEventListener('click', buyLemons);
-  els.upgradeQuality.addEventListener('click', () => upgrade('quality'));
-  els.upgradeStall.addEventListener('click', () => upgrade('stall'));
+  els.upgradeRecipe.addEventListener('click', upgradeRecipe);
   els.pause.addEventListener('click', togglePause);
   els.skipTime.addEventListener('click', skipToBoundary);
   els.restart.addEventListener('click', restart);

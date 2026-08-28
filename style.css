@@ -143,6 +143,17 @@ input[type="range"] {
   margin-top: 0.5rem;
 }
 
+/* Serving recipe dropdown in the Stall panel */
+select {
+  font: inherit;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: white;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
 button {
   font: inherit;
   padding: 0.4rem 0.9rem;

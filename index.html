@@ -20,7 +20,7 @@
 
   <main>
     <section class="panel">
-      <h2>Stall — Fizzy Lemonade</h2>
+      <h2>Stall — <span id="drink-name">Fizzy Lemonade</span></h2>
       <p>Money: <strong>$<span id="money">0</span></strong></p>
       <p>Stock: <strong><span id="stock">0</span> cups</strong></p>
       <p>
@@ -39,11 +39,22 @@
         <span class="help-icon" data-tooltip="tooltip-buy-chance">?</span>
       </p>
 
-      <button id="restock">Restock</button>
+      <p>
+        Serving:
+        <select id="recipe-select"></select>
+        <span class="tooltip" id="tooltip-serving"></span>
+        <span class="help-icon" data-tooltip="tooltip-serving">?</span>
+      </p>
+      <p class="muted" id="serving-note"></p>
+      <p class="muted" id="production-status"></p>
     </section>
 
     <section class="panel">
-      <h2>Upgrades</h2>
+      <h2>Recipe</h2>
+      <p>
+        Current: <strong><span id="recipe-name">Fizzy Lemonade</span></strong>
+        <span class="muted">(<span id="recipe-ingredients">water + lemon</span>)</span>
+      </p>
       <p>
         Quality: <strong>
           <span id="quality">0</span>
@@ -59,14 +70,9 @@
         </strong>
       </p>
       <p class="upgrade-row">
-        <button id="upgrade-quality">Better Recipe</button>
-        <span class="tooltip" id="tooltip-upgrade-quality"></span>
-        <span class="help-icon" data-tooltip="tooltip-upgrade-quality">?</span>
-      </p>
-      <p class="upgrade-row">
-        <button id="upgrade-stall">Nicer Stall</button>
-        <span class="tooltip" id="tooltip-upgrade-stall"></span>
-        <span class="help-icon" data-tooltip="tooltip-upgrade-stall">?</span>
+        <button id="upgrade-recipe">Unlock next recipe</button>
+        <span class="tooltip" id="tooltip-recipe"></span>
+        <span class="help-icon" data-tooltip="tooltip-recipe">?</span>
       </p>
     </section>
 
@@ -91,7 +97,7 @@
   <div id="game-over" class="overlay hidden">
     <div class="overlay-box">
       <h2>Game Over</h2>
-      <p>You ran out of stock and couldn't afford to buy supplies or restock. Your drink empire fizzled out.</p>
+      <p>You ran out of stock and couldn't afford supplies or production. Your drink empire fizzled out.</p>
       <p>Cups sold: <strong id="final-cups">0</strong></p>
       <button id="restart">Start a new stall</button>
     </div>

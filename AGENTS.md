@@ -41,9 +41,9 @@ The game may eventually include:
 
 The long-term fantasy is not just selling drinks, but building a beverage brand.
 
-## Current Development Stage (v0.0.3)
+## Current Development Stage (v0.0.4)
 
-**Version 0.0.3 — the MVP plus the day/night cycle and night supplies.**
+**Version 0.0.4 — the day/night cycle, night supplies, and recipe progression.**
 Design decisions live in `DESIGN.md` (the source of truth for numbers and roadmap).
 
 What exists:
@@ -52,10 +52,20 @@ What exists:
 - three game files: `index.html`, `style.css`, `game.js`
 - smoke tests for the game logic: `tests/smoke.js` — run with `node tests/smoke.js`
 - real-time simulation (1 tick/s), customers, sales, event log
-- player actions: price slider, restock (day), two upgrades (night)
+- player actions: price slider, serving recipe choice, recipe unlock (night)
 - day/night cycle: opens 08:00–23:00, game starts at 06:00 (pre-opening night shopping), OPEN/CLOSED badge, daily recap, fast-forward to the next day boundary
-- night supplies (lemons): buy lemons while closed, restock consumes money + lemons (production chain seed)
-- reputation, company-title milestones, game over + restart; upgrades are priced so the first one is a multi-day goal ("from zero to hero")
+- night supplies (lemons): buy lemons while closed, auto-restock consumes money + lemons (production chain seed)
+- auto-restock: the stall produces cups by itself while stock is below capacity
+  — costs $1 + lemons per cup, takes 3 ticks per cup, runs day/night and during
+  fast-forward; no manual restock clicks
+- recipe progression: 5 tiers (water + lemon → …), each tier raises quality and
+  with it the buy chance — the single upgrade path; priced so the first unlock is
+  a multi-day goal ("from zero to hero"); higher tiers cost more lemons per cup,
+  and the stall falls back to the best recipe it can still make when the crate
+  runs low
+- stall upgrade cut: attractiveness is a constant for now, freeing the stall for
+  future capacity + production upgrades
+- reputation, company-title milestones, game over + restart
 
 The learning focus is still fundamentals, not tooling — new tools are added
 only when they help learning or solve a real project need.
