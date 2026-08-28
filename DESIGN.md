@@ -112,8 +112,9 @@ gate, zero traffic at night). The header shows an OPEN/CLOSED badge; boundary
 events are logged ("The stall opens for the day!" / "Closing time — the stall
 is now closed.") and at closing the day is recapped ("Today: X cups sold, $Y
 earned."). The clock starts at 08:00 so a new game opens immediately. A
-"Wait until morning" button in the header skips the night in one click,
-jumping to the next 08:00. Numbers live in CONFIG: `openHour = 8`,
+fast-forward button in the header skips dead time in one click: while open it
+waits until closing (23:00), while closed it waits until the next morning
+(08:00). Numbers live in CONFIG: `openHour = 8`,
 `closeHour = 23`, `clockStart.hour = 8`, `clockMinutesPerTick = 10`.
 
 **Phase-gated actions** — the clock also gates what the player can do: restock
@@ -244,9 +245,10 @@ the game is playtested.
 9. ✅ **Phase-gated actions** — restock enabled only while open, upgrades only
    while closed; disabled buttons state the phase in their label and blocked
    clicks are explained in the log. *(learning: time-based action rules)*
-10. ✅ **Wait until morning** — a header button visible only while closed jumps
-    the clock to the next 08:00, skipping the night in one click. *(learning:
-    time skipping, player convenience)*
+10. ✅ **Fast-forward to the next day boundary** — a header button skips dead
+    time in one click: while open it waits until closing (23:00), while closed
+    it waits until the next morning (08:00). *(learning: time skipping, player
+    convenience)*
 
 Each step leaves the game runnable in the browser.
 

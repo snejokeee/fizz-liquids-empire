@@ -94,7 +94,7 @@ const els = {
   statusBadge: document.getElementById('status-badge'),
   timeline: document.getElementById('timeline'),
   pause: document.getElementById('pause'),
-  waitMorning: document.getElementById('wait-morning'),
+  skipTime: document.getElementById('skip-time'),
   price: document.getElementById('price'),
   buyChance: document.getElementById('buy-chance'),
   priceSlider: document.getElementById('price-slider'),
@@ -328,7 +328,8 @@ function render() {
   els.timeline.classList.toggle('paused', state.paused);
   els.pause.textContent = state.paused ? 'Play' : 'Pause';
   els.pause.disabled = state.gameOver;
-  els.waitMorning.classList.toggle('hidden', open || state.gameOver);
+  els.skipTime.classList.toggle('hidden', state.gameOver);
+  els.skipTime.textContent = open ? 'Wait until closing' : 'Wait until morning';
   els.price.textContent = state.price;
   els.priceSlider.value = state.price;
   els.buyChance.textContent = `${Math.round(buyChance() * 100)}%`;
@@ -389,18 +390,26 @@ function upgrade(key) {
   render();
 }
 
-// "Wait until morning" (issue #4): skip the closed phase in one click by
-// advancing the clock to the next 08:00. A pure time skip — no customers,
-// no income during the jump. Works while paused (it is an action, not a tick).
-function waitUntilMorning() {
-  if (isOpen() || state.gameOver) return;
+// "Fast-forward to the next day boundary" (issue #6): skip dead time in one
+// click. While open it waits until closing (23:00), while closed it waits
+// until the next opening (08:00). A pure time skip — no customers, no income
+// during the jump. Works while paused (it is an action, not a tick).
+function skipToBoundary() {
+  if (state.gameOver) return;
   const now = simDate();
-  const nextOpen = new Date(now.getFullYear(), now.getMonth(), now.getDate(), CONFIG.openHour, 0);
-  if (nextOpen <= now) {
-    nextOpen.setDate(nextOpen.getDate() + 1);
+  const wasOpen = isOpen();
+  const target = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    wasOpen ? CONFIG.closeHour : CONFIG.openHour,
+    0
+  );
+  if (!wasOpen && target <= now) {
+    target.setDate(target.getDate() + 1); // night: the next opening may be tomorrow
   }
-  state.ticks += Math.round((nextOpen - now) / 60000 / CONFIG.clockMinutesPerTick);
-  handleDayBoundary(false); // closed before the jump, so this is always an opening
+  state.ticks += Math.round((target - now) / 60000 / CONFIG.clockMinutesPerTick);
+  handleDayBoundary(wasOpen);
   render();
 }
 
@@ -438,7 +447,7 @@ function restart() {
 // ---------------------------------------------------------------------------
 // Logs day/night boundary events (issue #2) and resets the day counters on
 // opening. Called after the clock advances, whether by tick() or by the
-// "Wait until morning" action (issue #4).
+// fast-forward action (issue #6).
 function handleDayBoundary(wasOpen) {
   if (isOpen() && !wasOpen) {
     // The stall opens for a new day: start fresh day counters.
@@ -557,7 +566,7 @@ function init() {
   els.upgradeQuality.addEventListener('click', () => upgrade('quality'));
   els.upgradeStall.addEventListener('click', () => upgrade('stall'));
   els.pause.addEventListener('click', togglePause);
-  els.waitMorning.addEventListener('click', waitUntilMorning);
+  els.skipTime.addEventListener('click', skipToBoundary);
   els.restart.addEventListener('click', restart);
   wireTooltips();
   setInterval(tick, CONFIG.tickIntervalMs);
