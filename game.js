@@ -12,6 +12,11 @@ const CONFIG = {
   defaultPrice: 5,
   tickIntervalMs: 1000, // one simulation tick per second
 
+  // In-game clock (issue #1): the game starts at a fixed date/time and
+  // advances clockMinutesPerTick per tick (1 tick = 1 real second).
+  clockStart: { year: 1990, month: 8, day: 1, hour: 0, minute: 0 },
+  clockMinutesPerTick: 1,
+
   ingredientCost: 2, // $ per cup
   restockBatchSize: 10, // cups per restock button press
 
@@ -65,6 +70,7 @@ const state = {
   totalEarned: 0,
   upgrades: { quality: 0, stall: 0 },
   ticks: 0, // the simulation clock, incremented by tick()
+  paused: false, // when true, tick() skips the simulation (issue #1)
   gameOver: false,
 };
 
@@ -76,7 +82,9 @@ const els = {
   money: document.getElementById('money'),
   stock: document.getElementById('stock'),
   reputation: document.getElementById('reputation'),
-  ticks: document.getElementById('ticks'),
+  clock: document.getElementById('clock'),
+  timeline: document.getElementById('timeline'),
+  pause: document.getElementById('pause'),
   price: document.getElementById('price'),
   buyChance: document.getElementById('buy-chance'),
   priceSlider: document.getElementById('price-slider'),
@@ -134,6 +142,22 @@ function companyTitle() {
   return title;
 }
 
+// In-game clock display (issue #1): converts the tick counter into a
+// 24H DD/MM/YYYY timestamp starting at CONFIG.clockStart. The Date
+// constructor handles hour/day/month/year carry-over automatically.
+function formatClock() {
+  const start = CONFIG.clockStart;
+  const date = new Date(
+    start.year,
+    start.month - 1, // Date months are 0-indexed
+    start.day,
+    start.hour,
+    start.minute + state.ticks * CONFIG.clockMinutesPerTick
+  );
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(date.getHours())}:${pad(date.getMinutes())} ${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
+}
+
 // ---------------------------------------------------------------------------
 // RENDER — draws the current state into the UI. Called after every change,
 // so the page always mirrors state.
@@ -142,7 +166,10 @@ function render() {
   els.money.textContent = state.money;
   els.stock.textContent = state.stock;
   els.reputation.textContent = state.reputation;
-  els.ticks.textContent = state.ticks;
+  els.clock.textContent = formatClock();
+  els.timeline.classList.toggle('paused', state.paused);
+  els.pause.textContent = state.paused ? 'Play' : 'Pause';
+  els.pause.disabled = state.gameOver;
   els.price.textContent = state.price;
   els.priceSlider.value = state.price;
   els.buyChance.textContent = `${Math.round(buyChance() * 100)}%`;
@@ -194,6 +221,12 @@ function upgrade(key) {
   render();
 }
 
+function togglePause() {
+  if (state.gameOver) return;
+  state.paused = !state.paused;
+  render();
+}
+
 function restart() {
   Object.assign(state, {
     money: CONFIG.starterMoney,
@@ -206,6 +239,7 @@ function restart() {
     totalEarned: 0,
     upgrades: { quality: 0, stall: 0 },
     ticks: 0,
+    paused: false,
     gameOver: false,
   });
   els.logList.replaceChildren();
@@ -218,7 +252,7 @@ function restart() {
 // Each tick: customers may arrive, then the game-over condition is checked.
 // ---------------------------------------------------------------------------
 function tick() {
-  if (state.gameOver) return;
+  if (state.gameOver || state.paused) return;
   state.ticks += 1;
   maybeCustomerArrives();
   checkGameOver();
@@ -273,6 +307,7 @@ function init() {
   els.restock.addEventListener('click', restock);
   els.upgradeQuality.addEventListener('click', () => upgrade('quality'));
   els.upgradeStall.addEventListener('click', () => upgrade('stall'));
+  els.pause.addEventListener('click', togglePause);
   els.restart.addEventListener('click', restart);
   setInterval(tick, CONFIG.tickIntervalMs);
   render();

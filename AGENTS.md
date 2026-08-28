@@ -88,6 +88,15 @@ When working on this project:
 - focus on one small feature at a time
 - make sure the UI reflects the game state clearly
 
+## Working with Issues
+
+- Feature work and bugs are tracked as GitHub issues on the remote repo `snejokeee/fizz-liquids-empire`.
+- ALWAYS use the `gh` CLI to interact with issues:
+  - `gh issue list` — find open issues
+  - `gh issue view <number>` — read the full issue details before implementing
+  - `gh issue close <number>` / `gh issue comment <number> --body "..."` — update status
+- Before implementing an issue, read it with `gh issue view` so the code matches the actual requirements.
+
 ## Architecture
 
 The architecture in use is:
