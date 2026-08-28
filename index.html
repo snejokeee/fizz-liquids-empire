@@ -71,6 +71,18 @@
     </section>
 
     <section class="panel">
+      <h2>Supplies</h2>
+      <p>
+        Lemons: <strong>
+          <span id="lemons">0</span>
+          <span class="tooltip" id="tooltip-lemons"></span>
+          <span class="help-icon" data-tooltip="tooltip-lemons">?</span>
+        </strong>
+      </p>
+      <button id="buy-lemons">Buy lemons</button>
+    </section>
+
+    <section class="panel">
       <h2>Event Log</h2>
       <ul id="log-list"></ul>
     </section>
@@ -79,7 +91,7 @@
   <div id="game-over" class="overlay hidden">
     <div class="overlay-box">
       <h2>Game Over</h2>
-      <p>You ran out of stock and couldn't afford to restock. Your drink empire fizzled out.</p>
+      <p>You ran out of stock and couldn't afford to buy supplies or restock. Your drink empire fizzled out.</p>
       <p>Cups sold: <strong id="final-cups">0</strong></p>
       <button id="restart">Start a new stall</button>
     </div>

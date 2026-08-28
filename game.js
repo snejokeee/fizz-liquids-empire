@@ -23,7 +23,14 @@ const CONFIG = {
   openHour: 8,
   closeHour: 23,
 
-  ingredientCost: 2, // $ per cup
+  // Supplies (issue #5): lemons are bought at night and consumed by restock.
+  // The money+lemon split keeps the total cost of a batch the same as before
+  // (productionCost 1 + lemonPrice 1 per cup = old ingredientCost 2).
+  lemonPrice: 1, // $ per lemon
+  lemonBatchSize: 10, // lemons per buy click
+  lemonPerCup: 1, // lemons consumed per cup produced
+  productionCost: 1, // $ per cup, the money part of restock
+
   restockBatchSize: 10, // cups per restock button press
 
   // Customer arrival chance per tick (DESIGN.md §6):
@@ -68,6 +75,7 @@ const TITLES = [
 const state = {
   money: CONFIG.starterMoney,
   stock: CONFIG.starterStock,
+  lemons: 0, // supply crate: bought at night, consumed by restock (issue #5)
   price: CONFIG.defaultPrice,
   quality: CONFIG.starterQuality,
   attractiveness: CONFIG.starterAttractiveness,
@@ -89,6 +97,7 @@ const state = {
 const els = {
   money: document.getElementById('money'),
   stock: document.getElementById('stock'),
+  lemons: document.getElementById('lemons'),
   reputation: document.getElementById('reputation'),
   clock: document.getElementById('clock'),
   statusBadge: document.getElementById('status-badge'),
@@ -99,6 +108,7 @@ const els = {
   buyChance: document.getElementById('buy-chance'),
   priceSlider: document.getElementById('price-slider'),
   restock: document.getElementById('restock'),
+  buyLemons: document.getElementById('buy-lemons'),
   quality: document.getElementById('quality'),
   attractiveness: document.getElementById('attractiveness'),
   upgradeQuality: document.getElementById('upgrade-quality'),
@@ -127,7 +137,22 @@ function addLog(message) {
 }
 
 function restockCost() {
-  return CONFIG.restockBatchSize * CONFIG.ingredientCost;
+  return CONFIG.restockBatchSize * CONFIG.productionCost;
+}
+
+function lemonBatchCost() {
+  return CONFIG.lemonBatchSize * CONFIG.lemonPrice;
+}
+
+function lemonsPerBatch() {
+  return CONFIG.restockBatchSize * CONFIG.lemonPerCup;
+}
+
+// True when the player can produce a fresh batch: the restock money cost plus
+// the lemons they would still have to buy at night (issue #5).
+function canProduceBatch() {
+  const missingLemons = Math.max(0, lemonsPerBatch() - state.lemons);
+  return state.money >= restockCost() + missingLemons * CONFIG.lemonPrice;
 }
 
 function upgradeCost(key) {
@@ -258,6 +283,16 @@ function tooltipBuyChanceHTML() {
     </div>`;
 }
 
+function tooltipLemonsHTML() {
+  return `
+    <div class="tooltip-header"><span class="tooltip-icon">●</span> Lemons</div>
+    <div class="tooltip-stats">
+      <div><span>Price</span><span>$${CONFIG.lemonPrice} each</span></div>
+      <div><span>Restock uses</span><span>${CONFIG.lemonPerCup} per cup</span></div>
+      <div><span>Bought</span><span>only while closed</span></div>
+    </div>`;
+}
+
 function tooltipUpgradeHTML(key) {
   const def = CONFIG.upgrades[key];
   const level = state.upgrades[key];
@@ -281,6 +316,7 @@ const TOOLTIP_CONTENT = {
   'tooltip-quality': tooltipQualityHTML,
   'tooltip-attractiveness': tooltipAttractivenessHTML,
   'tooltip-buy-chance': tooltipBuyChanceHTML,
+  'tooltip-lemons': tooltipLemonsHTML,
   'tooltip-upgrade-quality': () => tooltipUpgradeHTML('quality'),
   'tooltip-upgrade-stall': () => tooltipUpgradeHTML('stall'),
 };
@@ -319,6 +355,7 @@ function hideAllTooltips() {
 function render() {
   els.money.textContent = state.money;
   els.stock.textContent = state.stock;
+  els.lemons.textContent = state.lemons;
   els.reputation.textContent = state.reputation;
   els.clock.textContent = formatClock();
   const open = isOpen();
@@ -339,9 +376,13 @@ function render() {
   els.finalCups.textContent = state.cupsSold;
 
   // Phase gating (issue #3): restock is a day action, upgrades are night actions.
+  // Restock also needs lemons in the supply crate (issue #5).
   const affordable = (cost) => state.money >= cost && !state.gameOver;
-  els.restock.disabled = !open || !affordable(restockCost());
-  els.restock.textContent = `Restock ${CONFIG.restockBatchSize} cups — $${restockCost()}${open ? '' : ' (only while open)'}`;
+  const enoughLemons = state.lemons >= lemonsPerBatch();
+  els.restock.disabled = !open || !affordable(restockCost()) || !enoughLemons;
+  els.restock.textContent = `Restock ${CONFIG.restockBatchSize} cups — $${restockCost()} + ${lemonsPerBatch()} lemons${open ? '' : ' (only while open)'}`;
+  els.buyLemons.disabled = open || !affordable(lemonBatchCost());
+  els.buyLemons.textContent = `Buy ${CONFIG.lemonBatchSize} lemons — $${lemonBatchCost()}${open ? ' (only while closed)' : ''}`;
   els.upgradeQuality.disabled = open || !affordable(upgradeCost('quality'));
   els.upgradeQuality.textContent = `${CONFIG.upgrades.quality.name} (+${CONFIG.upgrades.quality.effect} quality) — $${upgradeCost('quality')}${open ? ' (only while closed)' : ''}`;
   els.upgradeStall.disabled = open || !affordable(upgradeCost('stall'));
@@ -366,9 +407,33 @@ function restock() {
     addLog(`Not enough money to restock ($${cost}).`);
     return;
   }
+  const lemons = lemonsPerBatch();
+  if (state.lemons < lemons) {
+    addLog(`Not enough lemons to restock (need ${lemons}, have ${state.lemons}). Buy lemons while the stall is closed.`);
+    return;
+  }
   state.money -= cost;
+  state.lemons -= lemons;
   state.stock += CONFIG.restockBatchSize;
-  addLog(`Restocked ${CONFIG.restockBatchSize} cups for $${cost}.`);
+  addLog(`Restocked ${CONFIG.restockBatchSize} cups for $${cost} and ${lemons} lemons.`);
+  render();
+}
+
+// Night shopping (issue #5): while the stall is closed the player buys
+// supplies for the next day. Day actions are unchanged: sell + restock.
+function buyLemons() {
+  if (isOpen()) {
+    addLog('Supplies are only available while the stall is closed.');
+    return;
+  }
+  const cost = lemonBatchCost();
+  if (state.money < cost) {
+    addLog(`Not enough money for lemons ($${cost}).`);
+    return;
+  }
+  state.money -= cost;
+  state.lemons += CONFIG.lemonBatchSize;
+  addLog(`Bought ${CONFIG.lemonBatchSize} lemons for $${cost}.`);
   render();
 }
 
@@ -423,6 +488,7 @@ function restart() {
   Object.assign(state, {
     money: CONFIG.starterMoney,
     stock: CONFIG.starterStock,
+    lemons: 0,
     price: CONFIG.defaultPrice,
     quality: CONFIG.starterQuality,
     attractiveness: CONFIG.starterAttractiveness,
@@ -503,11 +569,12 @@ function customerVisits() {
 }
 
 // ---------------------------------------------------------------------------
-// GAME OVER — you lose when you have nothing to sell and cannot afford to
-// restock (DESIGN.md §9). The overlay asks the player to restart.
+// GAME OVER — you lose when you have nothing to sell and cannot produce a new
+// batch: restock money plus the lemons you would still need to buy (DESIGN.md
+// §9, issue #5). The overlay asks the player to restart.
 // ---------------------------------------------------------------------------
 function checkGameOver() {
-  if (state.stock === 0 && state.money < restockCost()) {
+  if (state.stock === 0 && !canProduceBatch()) {
     state.gameOver = true;
     els.gameOverOverlay.classList.remove('hidden');
   }
@@ -563,6 +630,7 @@ function wireTooltips() {
 function init() {
   els.priceSlider.addEventListener('input', (event) => setPrice(Number(event.target.value)));
   els.restock.addEventListener('click', restock);
+  els.buyLemons.addEventListener('click', buyLemons);
   els.upgradeQuality.addEventListener('click', () => upgrade('quality'));
   els.upgradeStall.addEventListener('click', () => upgrade('stall'));
   els.pause.addEventListener('click', togglePause);

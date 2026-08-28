@@ -41,9 +41,9 @@ The game may eventually include:
 
 The long-term fantasy is not just selling drinks, but building a beverage brand.
 
-## Current Development Stage (v0.0.2)
+## Current Development Stage (v0.0.3)
 
-**Version 0.0.2 — the MVP plus the day/night cycle.**
+**Version 0.0.3 — the MVP plus the day/night cycle and night supplies.**
 Design decisions live in `DESIGN.md` (the source of truth for numbers and roadmap).
 
 What exists:
@@ -54,6 +54,7 @@ What exists:
 - real-time simulation (1 tick/s), customers, sales, event log
 - player actions: price slider, restock (day), two upgrades (night)
 - day/night cycle (08:00–23:00), OPEN/CLOSED badge, daily recap, fast-forward to the next day boundary
+- night supplies (lemons): buy lemons while closed, restock consumes money + lemons (production chain seed)
 - reputation, company-title milestones, game over + restart
 
 The learning focus is still fundamentals, not tooling — new tools are added

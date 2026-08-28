@@ -1,6 +1,6 @@
 # Fizz Liquids Empire — Design Document
 
-Version: 0.0.2
+Version: 0.0.3
 Date: 2026-08-28
 Status: implemented and playable in the browser; numbers are a first balance
 pass, tuned by playtesting.
@@ -25,13 +25,14 @@ making it better.
 - One drink, one stall, one city block of foot traffic.
 - Real-time simulation tick (1 tick = 1 second).
 - Customers arrive, decide to buy or walk away, pay you.
-- Player actions: set price, restock, buy two upgrade types.
+- Player actions: set price, restock, buy two upgrade types, buy supplies at night.
+- Production chain seed: restock converts night-bought supplies (lemons) into cups.
 - Growth feel: numbers go up, company title milestones.
 - Lose condition: bankruptcy → game over → restart.
 
 **Explicitly out of scope (later iterations):**
 
-- Recipes / multiple drinks / ingredients variety
+- Recipes / multiple drinks / ingredient variety (lemons are the only supply for now)
 - Production lines, storage, employees
 - Marketing campaigns, events, weather
 - Save/load, sound, animations
@@ -50,8 +51,8 @@ tick (1s)
             └─ leaves → nothing (logged)
 player actions (phase-gated by day/night)
   ├─ set price (any time)
-  ├─ restock ingredients (day only)
-  └─ buy upgrades (quality, stall) — night only
+  ├─ restock ingredients (day only)    — costs money + lemons from the crate
+  └─ night only: buy supplies (lemons) and upgrades (quality, stall)
 ```
 
 This maps directly onto the project architecture: `state → render → actions`.
@@ -62,6 +63,7 @@ This maps directly onto the project architecture: `state → render → actions`
 state = {
   money:         50,   // starter balance ($)
   stock:         10,   // cups ready to sell (free prototype batch)
+  lemons:        0,    // supply crate — bought at night, consumed by restock
   price:         5,    // $ per cup (player can change 1..10)
   quality:       50,   // 0..100, how good the drink is
   attractiveness: 10,  // 0..100, how many people notice the stall
@@ -83,15 +85,17 @@ state = {
 |---|---|
 | Starter balance | $50 |
 | Starting stock | 10 cups (free prototype batch) |
-| Ingredient cost | $2 per cup → restock 10 cups = $20 |
+| Lemon price | $1 each (bought at night, 10 per click = $10) |
+| Production cost | $1 per cup (the money part of restock) |
+| Restock | 10 cups = $10 + 10 lemons (1 lemon per cup) → $20 total per batch |
 | Default price | $5 (player range $1–$10) |
 | Gross margin at default | $3 per cup |
 | Clock speed | 10 in-game minutes per tick (1 tick = 1 real second) |
 | Quality upgrade | +10 quality per level, base $30, ×1.6 per level |
 | Stall upgrade | +10 attractiveness per level, base $25, ×1.6 per level |
 
-Expected pacing at start (~$10 profit/min): first restock after ~2 min, first
-upgrade after ~3 min. Tunable later.
+Expected pacing at start (~$10 profit/min): first night of lemon shopping after
+the first day, first upgrade after ~3 min. Tunable later.
 
 All numbers live in one `CONFIG` object in the code (see section 11) so balance
 changes are a single edit — that is also the *why* of the design.
@@ -122,6 +126,15 @@ waits until closing (23:00), while closed it waits until the next morning
 works only while the stall is open (day), upgrades only while it is closed
 (night). Disabled buttons say why in their label ("only while open" / "only
 while closed"), and clicking a gated action logs the reason.
+
+**Night shopping (production chain seed)** — the closed phase also sells
+supplies. Lemons cost $1 each (10 per click) and are shown in a Supplies
+panel. Restock is a day action that converts lemons into cups: one restock of
+10 cups costs $10 plus 10 lemons, so the night routine is *sell by day, buy
+lemons by night, restock the next morning*. If the crate is short, restock is
+blocked and the log explains the shortage. The game-over rule accounts for the
+full chain: with no stock you must be able to afford both the restock money
+and the missing lemons (DESIGN.md §9).
 
 **Buy decision** — a customer buys with probability:
 
@@ -171,11 +184,12 @@ Titles are display-only. No new mechanics — just reward for the grind.
 
 ## 9. Win / Lose
 
-- **Lose (game over):** `stock === 0` **and** `money < restock cost`. You have
-  nothing to sell and cannot afford to restock. (Implemented rule; stricter than
-  "money === 0" — it also ends the game when you have a little cash but no way
-  to earn, preventing a soft-lock.) A "Game Over" overlay appears with a Restart
-  button.
+- **Lose (game over):** `stock === 0` **and** the player cannot produce a new
+  batch — restock money **plus** the cost of the lemons they would still need
+  to buy. (Implemented rule; stricter than "money === 0" — it also ends the
+  game when you have a little cash but no way to earn, preventing a soft-lock.
+  Lemons already in the crate count toward the check.) A "Game Over" overlay
+  appears with a Restart button.
 - **Win:** none. It's an open-ended grower. Milestones are the goals.
 - Purchases always require affordability — no debt, so money never goes negative.
 
@@ -195,7 +209,13 @@ Titles are display-only. No new mechanics — just reward for the grind.
 │  Buy chance: │  [Nicer      │                │
 │  50%         │   Stall      │                │
 │  [Restock    │   +10 a —$25]│                │
-│   10 — $20]  │              │                │
+│   10 — $10 + │              │                │
+│   10 lemons] │              │                │
+├──────────────┼──────────────┴────────────────┤
+│  Supplies    │  Lemons: 0 ? │                │
+│  [Buy 10     │              │                │
+│   lemons —$10│              │                │
+│   (night)]   │              │                │
 ├──────────────┴──────────────┴────────────────┤
 │  game over → overlay with Restart button     │
 └──────────────────────────────────────────────┘
@@ -229,6 +249,8 @@ The game is playable in the browser. Implemented so far:
   player actions (price, restock, upgrades), game over + restart
 - Day/night opening hours (08:00–23:00) — OPEN/CLOSED badge, daily recap at closing
 - Phase-gated actions — restock by day, upgrades at night
+- Night supplies (lemons) — night shopping, restock consumes money + lemons,
+  game over accounts for the production chain (issue #5)
 - Fast-forward to the next day boundary — day → closing / night → morning
 - Smoke tests (`tests/smoke.js`)
 - Balance pass — ongoing, tune CONFIG by playtesting
@@ -248,3 +270,8 @@ runnable in the browser.
 Recipes & ingredients → production chain → marketing & events → multiple
 locations → save/load → sound & animations. Each one is its own small feature
 and its own learning step.
+
+The production chain is now **seeded**: lemons are the first supply with night
+shopping, and restock converts them into cups. Still ahead on this track:
+the other supplies (ice, water), recipe variants (more lemons = better
+quality at a higher cost), and anything beyond a single ingredient per cup.
