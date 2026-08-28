@@ -96,6 +96,10 @@ When working on this project:
   - `gh issue view <number>` — read the full issue details before implementing
   - `gh issue close <number>` / `gh issue comment <number> --body "..."` — update status
 - Before implementing an issue, read it with `gh issue view` so the code matches the actual requirements.
+- ALWAYS leave a comment on an issue when closing it — summarize what was
+  implemented and how it was verified, so the closed issue documents the work
+  (e.g. `gh issue close <number> --comment "..."` or `gh issue comment` before
+  closing).
 
 ## Architecture
 
