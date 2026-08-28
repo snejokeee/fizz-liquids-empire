@@ -2,8 +2,8 @@
 
 Version: 0.0.1 (MVP — playable)
 Date: 2026-08-25
-Status: implemented — roadmap steps 1–6 are done; numbers are a first balance
-pass and will be tuned after playtesting (step 7).
+Status: implemented — roadmap steps 1–6 and 8 are done; numbers are a first
+balance pass and will be tuned after playtesting (step 7).
 
 ---
 
@@ -68,6 +68,8 @@ state = {
   reputation:     0,   // 0..100, earned per sale, soft bonus to buying
   cupsSold:       0,   // lifetime counter (milestones)
   totalEarned:    0,   // lifetime $ earned (milestones)
+  dayCupsSold:    0,   // today's sales (daily recap at closing)
+  dayEarned:      0,   // today's revenue (daily recap at closing)
   upgrades: { quality: 0, stall: 0 }, // current upgrade levels
   ticks:         0,   // the simulation clock (1 tick = 1 second)
   gameOver:      false
@@ -102,6 +104,14 @@ customerChance = 0.1 + attractiveness * 0.002   // per second
 
 At start (attractiveness 10): ~0.12/s → about 7 customers per minute.
 Fully upgraded (100): ~0.3/s → about 18 per minute.
+
+**Opening hours (day/night cycle)** — the stall is open from 08:00 to 23:00
+in-game time (1 tick = 1 minute). While closed, no customers arrive (hard gate,
+zero traffic at night). The header shows an OPEN/CLOSED badge; boundary events
+are logged ("The stall opens for the day!" / "Closing time — the stall is now
+closed.") and at closing the day is recapped ("Today: X cups sold, $Y earned.").
+The clock starts at 08:00 so a new game opens immediately. Numbers live in
+CONFIG: `openHour = 8`, `closeHour = 23`, `clockStart.hour = 8`.
 
 **Buy decision** — a customer buys with probability:
 
@@ -202,8 +212,9 @@ Follows AGENTS.md: **state holds the truth, render draws it, actions change it.*
 
 ## 12. Implementation Roadmap (small steps)
 
-Status: steps 1–6 implemented — the MVP is playable in the browser. Step 7
-(balance pass) is an ongoing tuning task as the game is playtested.
+Status: steps 1–6 and 8 implemented — the MVP plus opening hours is playable
+in the browser. Step 7 (balance pass) is an ongoing tuning task as the game is
+playtested.
 
 1. ✅ **Static page** — `index.html` + `style.css` + `game.js`, render a hardcoded
    state (money, stock, price) so the layout exists. *(learning: HTML/CSS)*
@@ -219,6 +230,9 @@ Status: steps 1–6 implemented — the MVP is playable in the browser. Step 7
 6. ✅ **Game over + restart** — bankruptcy check, overlay, reset. *(learning: win/lose
    flow)*
 7. **Balance pass** — play it, tune CONFIG numbers. *(learning: game balance)*
+8. ✅ **Opening hours (day/night cycle)** — CONFIG.openHour/closeHour, hard-gated
+   arrivals at night, OPEN/CLOSED badge in the header, boundary log lines and a
+   daily recap at closing. *(learning: derived state, time-based rules)*
 
 Each step leaves the game runnable in the browser.
 

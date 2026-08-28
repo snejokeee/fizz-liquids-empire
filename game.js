@@ -14,8 +14,14 @@ const CONFIG = {
 
   // In-game clock (issue #1): the game starts at a fixed date/time and
   // advances clockMinutesPerTick per tick (1 tick = 1 real second).
-  clockStart: { year: 1990, month: 8, day: 1, hour: 0, minute: 0 },
+  clockStart: { year: 1990, month: 8, day: 1, hour: 8, minute: 0 },
   clockMinutesPerTick: 1,
+
+  // Opening hours (issue #2): the stall is open from openHour (08:00) up to
+  // closeHour (23:00). No customers arrive while closed. The clock starts at
+  // 08:00 so a new game opens immediately.
+  openHour: 8,
+  closeHour: 23,
 
   ingredientCost: 2, // $ per cup
   restockBatchSize: 10, // cups per restock button press
@@ -68,6 +74,8 @@ const state = {
   reputation: 0,
   cupsSold: 0,
   totalEarned: 0,
+  dayCupsSold: 0, // today's sales, reset when the stall opens (issue #2)
+  dayEarned: 0, // today's revenue, reset when the stall opens (issue #2)
   upgrades: { quality: 0, stall: 0 },
   ticks: 0, // the simulation clock, incremented by tick()
   paused: false, // when true, tick() skips the simulation (issue #1)
@@ -83,6 +91,7 @@ const els = {
   stock: document.getElementById('stock'),
   reputation: document.getElementById('reputation'),
   clock: document.getElementById('clock'),
+  statusBadge: document.getElementById('status-badge'),
   timeline: document.getElementById('timeline'),
   pause: document.getElementById('pause'),
   price: document.getElementById('price'),
@@ -142,20 +151,36 @@ function companyTitle() {
   return title;
 }
 
-// In-game clock display (issue #1): converts the tick counter into a
-// 24H DD/MM/YYYY timestamp starting at CONFIG.clockStart. The Date
-// constructor handles hour/day/month/year carry-over automatically.
-function formatClock() {
+// The in-game Date derived from the tick counter and CONFIG.clockStart.
+// One source of truth for the clock; the Date constructor handles
+// hour/day/month/year carry-over automatically.
+function simDate() {
   const start = CONFIG.clockStart;
-  const date = new Date(
+  return new Date(
     start.year,
     start.month - 1, // Date months are 0-indexed
     start.day,
     start.hour,
     start.minute + state.ticks * CONFIG.clockMinutesPerTick
   );
+}
+
+// In-game clock display (issue #1): 24H DD/MM/YYYY timestamp of simDate().
+function formatClock() {
+  const date = simDate();
   const pad = (n) => String(n).padStart(2, '0');
   return `${pad(date.getHours())}:${pad(date.getMinutes())} ${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
+}
+
+// Current in-game hour (0–23) of simDate(); drives the opening-hours check.
+function currentHour() {
+  return simDate().getHours();
+}
+
+// Opening hours (issue #2): open from CONFIG.openHour up to (not including)
+// CONFIG.closeHour — so 08:00–22:59 is open and the stall closes at 23:00.
+function isOpen() {
+  return currentHour() >= CONFIG.openHour && currentHour() < CONFIG.closeHour;
 }
 
 // ---------------------------------------------------------------------------
@@ -295,6 +320,9 @@ function render() {
   els.stock.textContent = state.stock;
   els.reputation.textContent = state.reputation;
   els.clock.textContent = formatClock();
+  els.statusBadge.textContent = isOpen() ? 'OPEN' : 'CLOSED';
+  els.statusBadge.classList.toggle('open', isOpen());
+  els.statusBadge.classList.toggle('closed', !isOpen());
   els.timeline.classList.toggle('paused', state.paused);
   els.pause.textContent = state.paused ? 'Play' : 'Pause';
   els.pause.disabled = state.gameOver;
@@ -365,6 +393,8 @@ function restart() {
     reputation: 0,
     cupsSold: 0,
     totalEarned: 0,
+    dayCupsSold: 0,
+    dayEarned: 0,
     upgrades: { quality: 0, stall: 0 },
     ticks: 0,
     paused: false,
@@ -381,13 +411,25 @@ function restart() {
 // ---------------------------------------------------------------------------
 function tick() {
   if (state.gameOver || state.paused) return;
+  const wasOpen = isOpen();
   state.ticks += 1;
+  if (isOpen() && !wasOpen) {
+    // The stall opens for a new day: start fresh day counters.
+    state.dayCupsSold = 0;
+    state.dayEarned = 0;
+    addLog('The stall opens for the day!');
+  } else if (!isOpen() && wasOpen) {
+    // Closing time: recap the day that just ended.
+    addLog('Closing time — the stall is now closed.');
+    addLog(`Today: ${state.dayCupsSold} cups sold, $${state.dayEarned} earned.`);
+  }
   maybeCustomerArrives();
   checkGameOver();
   render();
 }
 
 function maybeCustomerArrives() {
+  if (!isOpen()) return; // hard gate: no customers while the stall is closed (issue #2)
   const chance = CONFIG.customerArrivalBase
     + state.attractiveness * CONFIG.customerArrivalPerAttractiveness;
   if (Math.random() < chance) {
@@ -409,6 +451,8 @@ function customerVisits() {
     );
     state.cupsSold += 1;
     state.totalEarned += state.price;
+    state.dayCupsSold += 1;
+    state.dayEarned += state.price;
     addLog(`A customer bought a cup for $${state.price}.`);
   } else {
     addLog('A customer looked at the price and walked away.');
