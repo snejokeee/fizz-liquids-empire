@@ -26,6 +26,27 @@
       </div>
     </div>
 
+    <div class="header-chip header-money">
+      <span class="stat-label">Money</span>
+      <span class="stat-value stat-money">$<span id="money">40</span></span>
+    </div>
+
+    <div class="header-chip header-reputation">
+      <span class="stat-label">Reputation</span>
+      <span class="chip-value-row">
+        <span class="stat-value" id="reputation">0</span>
+        <span class="help-icon" data-tooltip="tooltip-reputation">?</span>
+      </span>
+    </div>
+
+    <div class="header-chip header-attractiveness">
+      <span class="stat-label">Attractiveness</span>
+      <span class="chip-value-row">
+        <span class="stat-value" id="attractiveness">10</span>
+        <span class="help-icon" data-tooltip="tooltip-attractiveness">?</span>
+      </span>
+    </div>
+
     <div class="timeline" id="timeline" role="group" aria-label="Game timeline">
       <span class="status-badge closed" id="status-badge">CLOSED</span>
       <span class="day-night" aria-hidden="true">
@@ -50,22 +71,11 @@
         </span>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat stat-hero">
-          <span class="stat-label">Money</span>
-          <span class="stat-value stat-money">$<span id="money">40</span></span>
-        </div>
+      <div class="stat-row">
         <div class="stat">
           <span class="stat-label">Stock</span>
           <span class="stat-value-row">
             <span class="stat-value" id="stock">10 / 10</span>
-          </span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Reputation</span>
-          <span class="stat-value-row">
-            <span class="stat-value" id="reputation">0</span>
-            <span class="help-icon" data-tooltip="tooltip-reputation">?</span>
           </span>
         </div>
         <div class="stat">
@@ -94,7 +104,6 @@
         <span class="help-icon" data-tooltip="tooltip-serving">?</span>
       </div>
       <p class="note" id="serving-note"></p>
-      <p class="note note-status" id="production-status"></p>
     </section>
 
     <section class="panel panel-recipe" aria-labelledby="recipe-title">
@@ -106,21 +115,12 @@
         <span class="recipe-name" id="recipe-name">Fizzy Lemonade</span>
         <span class="muted recipe-ingredients">(<span id="recipe-ingredients">water + lemon</span>)</span>
       </div>
-      <div class="stats-grid stats-grid-2">
-        <div class="stat">
-          <span class="stat-label">Quality</span>
-          <span class="stat-value-row">
-            <span class="stat-value" id="quality">50</span>
-            <span class="help-icon" data-tooltip="tooltip-quality">?</span>
-          </span>
-        </div>
-        <div class="stat">
-          <span class="stat-label">Attractiveness</span>
-          <span class="stat-value-row">
-            <span class="stat-value" id="attractiveness">10</span>
-            <span class="help-icon" data-tooltip="tooltip-attractiveness">?</span>
-          </span>
-        </div>
+      <div class="stat">
+        <span class="stat-label">Quality</span>
+        <span class="stat-value-row">
+          <span class="stat-value" id="quality">50</span>
+          <span class="help-icon" data-tooltip="tooltip-quality">?</span>
+        </span>
       </div>
       <div class="upgrade-row">
         <button class="btn btn-accent" id="upgrade-recipe">Unlock next recipe</button>
@@ -140,6 +140,12 @@
         </span>
       </div>
       <button class="btn btn-primary" id="buy-lemons">Buy lemons</button>
+
+      <div class="production-block">
+        <h3 class="sub-head">Auto-restock</h3>
+        <p class="note" id="production-explain"></p>
+        <p class="note note-status" id="production-status"></p>
+      </div>
     </section>
 
     <section class="panel panel-log" aria-labelledby="log-title">

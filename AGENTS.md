@@ -71,13 +71,16 @@ What exists:
   future capacity + production upgrades
 - reputation, company-title milestones, game over + restart
 - Modern Beverage Tycoon UI (v0.0.5): dark glass dashboard themed with CSS
-  custom properties (:root design tokens), sticky header with a digital clock
-  and sun/moon day-night indicator, stat tiles with mono numbers, per-panel
-  beverage accent stripes; deliberately static styling — no animations,
-  transitions or backdrop-filter, so the per-tick render stays cheap (game.js
-  only touches the DOM when a displayed value actually changes); the paused
+  custom properties (:root design tokens), sticky header with colored status
+  blocks (money green, reputation gold, attractiveness pink) left of the
+  timeline pill (digital clock + sun/moon day-night indicator), a 2×2 board
+  grid (stall|recipe / supplies|log) that fills ~90vw with a root font-size
+  scale knob (17px), stat tiles with mono numbers, per-panel beverage
+  accent stripes; deliberately static styling — no animations, transitions
+  or backdrop-filter, so the per-tick render stays cheap (game.js only
+  touches the DOM when a displayed value actually changes); the paused
   state stripes the timeline and dims the board; responsive down to mobile
-  (2-col ≤1024px, 1-col ≤768px, 44px touch targets)
+  (2×2 → 1-col at ≤768px, 44px touch targets)
 
 The learning focus is still fundamentals, not tooling — new tools are added
 only when they help learning or solve a real project need.

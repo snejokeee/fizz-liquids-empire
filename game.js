@@ -20,6 +20,7 @@ const els = {
   recipeSelect: document.getElementById('recipe-select'),
   servingNote: document.getElementById('serving-note'),
   productionStatus: document.getElementById('production-status'),
+  productionExplain: document.getElementById('production-explain'),
   buyLemons: document.getElementById('buy-lemons'),
   quality: document.getElementById('quality'),
   attractiveness: document.getElementById('attractiveness'),
@@ -123,6 +124,7 @@ function render() {
     setText(els.servingNote, `${servedRecipe().name} — ${servedRecipe().lemonsPerCup} lemon${servedRecipe().lemonsPerCup === 1 ? '' : 's'} + $1 per cup`);
   }
   setText(els.productionStatus, productionStatusText());
+  setText(els.productionExplain, `While stock is below ${CONFIG.stockCapacity} cups, the stall brews 1 cup every ${CONFIG.productionTicksPerCup} ticks — $${CONFIG.productionCost} + ${effective.lemonsPerCup} lemon${effective.lemonsPerCup === 1 ? '' : 's'} (${effective.name}) per cup.`);
 }
 
 // ---------------------------------------------------------------------------

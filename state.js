@@ -62,7 +62,7 @@ function isFallingBack() {
   return effectiveRecipe() !== servedRecipe();
 }
 
-// One-line state of the auto-restock line in the Stall panel.
+// One-line state of the auto-restock line in the Supplies panel.
 function productionStatusText() {
   if (state.stock >= CONFIG.stockCapacity) return 'Stock full';
   if (state.money < CONFIG.productionCost) return 'Not enough money to produce';

@@ -62,6 +62,12 @@
   box-sizing: border-box;
 }
 
+/* Type scale: every rem below scales from this root — the one knob for
+   interface size (raise it when the dashboard needs to be easier to read). */
+html {
+  font-size: 17px;
+}
+
 /* Fixed gradient backdrop. It is static (painted once), so the translucent
    panels above it get the dark-glass look without backdrop-filter blur —
    blur would have to re-composite the whole page on every tick. */
@@ -106,8 +112,8 @@ body::before {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--space-sm) var(--space-md);
-  padding: var(--space-sm) var(--space-md);
+  gap: 4px 10px;
+  padding: 6px 12px;
   background: rgba(11, 17, 32, 0.94);
   border-bottom: 1px solid var(--border-soft);
 }
@@ -129,7 +135,7 @@ body::before {
 
 .brand-text h1 {
   margin: 0;
-  font-size: 1.02rem;
+  font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.01em;
   line-height: 1.15;
@@ -141,7 +147,7 @@ body::before {
 
 .company-title {
   display: block;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -157,7 +163,7 @@ body::before {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: 6px 12px;
+  padding: 4px 10px;
   border-radius: var(--radius-pill);
   background: linear-gradient(135deg, rgba(51, 65, 85, 0.35), rgba(15, 23, 42, 0.5));
   border: 1px solid var(--border-soft);
@@ -184,7 +190,7 @@ body::before {
   gap: 6px;
   padding: 4px 10px;
   border-radius: var(--radius-pill);
-  font-size: 0.64rem;
+  font-size: 0.66rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -270,6 +276,62 @@ body::before {
   gap: var(--space-sm);
 }
 
+/* Header status chips: money (green), reputation (gold) and attractiveness
+   (pink) sit left of the timeline, each with its own accent; all share
+   .header-chip. */
+.header-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px 12px;
+  line-height: 1.15;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-soft);
+}
+
+.header-chip .stat-label {
+  font-size: 0.56rem;
+}
+
+.header-money {
+  align-items: flex-end;
+  margin-left: auto; /* brand left, chips + timeline right */
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.14), rgba(15, 23, 42, 0.45));
+  border-color: rgba(52, 211, 153, 0.35);
+}
+
+.header-money .stat-value {
+  font-size: 1.15rem;
+}
+
+.header-reputation {
+  align-items: flex-end;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.14), rgba(15, 23, 42, 0.45));
+  border-color: rgba(251, 191, 36, 0.35);
+}
+
+.header-reputation .stat-value {
+  color: #fde68a;
+  text-shadow: 0 0 14px rgba(251, 191, 36, 0.4);
+}
+
+.header-attractiveness {
+  align-items: flex-end;
+  background: linear-gradient(135deg, rgba(244, 114, 182, 0.14), rgba(15, 23, 42, 0.45));
+  border-color: rgba(244, 114, 182, 0.35);
+}
+
+.header-attractiveness .stat-value {
+  color: #f9a8d4;
+  text-shadow: 0 0 14px rgba(244, 114, 182, 0.4);
+}
+
+.chip-value-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* ---------------------------------------------------------------------------
    Buttons — pill-shaped; hover is a plain color/border change (no lift, no
    press-down scale, no transitions)
@@ -279,10 +341,10 @@ body::before {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-height: 34px;
+  min-height: 36px;
   padding: 5px 14px;
   font: inherit;
-  font-size: 0.84rem;
+  font-size: 0.88rem;
   font-weight: 600;
   color: var(--text-primary);
   background: rgba(148, 163, 184, 0.1);
@@ -378,16 +440,15 @@ body::before {
    Main — dashboard grid: stall + log on the left, recipe + supplies right
    --------------------------------------------------------------------------- */
 main {
-  max-width: 1200px;
+  max-width: 90vw; /* fill most of the viewport: wide panels, readable text */
   margin: 0 auto;
-  padding: var(--space-md);
+  padding: 8px 12px;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: var(--space-md);
+  gap: 10px;
   grid-template-areas:
-    'stall stall stall stall stall stall stall recipe recipe recipe recipe recipe'
-    'stall stall stall stall stall stall stall supplies supplies supplies supplies supplies'
-    'log log log log log log log log log log log log';
+    'stall stall stall stall stall stall recipe recipe recipe recipe recipe recipe'
+    'supplies supplies supplies supplies supplies supplies log log log log log log';
 }
 
 /* Paused: the whole board desaturates and dims slightly. game.js toggles
@@ -403,7 +464,7 @@ body.paused main {
 .panel {
   position: relative;
   overflow: hidden;
-  padding: var(--space-md);
+  padding: 12px 14px;
   background: var(--surface);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg);
@@ -455,7 +516,7 @@ body.paused main {
 
 .panel-head h2 {
   margin: 0;
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.18em;
@@ -471,7 +532,7 @@ body.paused main {
   gap: 6px;
   max-width: 100%;
   padding: 3px 10px;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-primary);
   background: rgba(6, 182, 212, 0.12);
@@ -488,40 +549,19 @@ body.paused main {
   box-shadow: 0 0 8px var(--accent-cyan);
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-sm);
-  margin-bottom: var(--space-sm);
-}
-
-.stats-grid-2 {
-  grid-template-columns: repeat(2, 1fr);
-}
-
 .stat {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
-  padding: var(--space-sm);
+  padding: 6px 8px;
   background: var(--surface-raised);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-md);
 }
 
-/* Money is the hero stat: full-width row, big glowing number. */
-.stat-hero {
-  grid-column: 1 / -1;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.14), rgba(15, 23, 42, 0.4));
-  border-color: rgba(6, 182, 212, 0.3);
-}
-
 .stat-label {
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -535,22 +575,25 @@ body.paused main {
   min-width: 0;
 }
 
+/* Side-by-side stat tiles (stock + buy chance in the stall panel). */
+.stat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
 .stat-value {
   font-family: var(--font-mono);
-  font-size: 1.12rem;
+  font-size: 1.25rem;
   font-weight: 700;
   line-height: 1.25;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
 }
 
-.stat-hero .stat-value {
-  font-size: 1.65rem;
-}
-
 .stat-money {
-  color: #a5f3fc;
-  text-shadow: 0 0 14px rgba(6, 182, 212, 0.45);
+  color: #6ee7b7;
+  text-shadow: 0 0 14px rgba(52, 211, 153, 0.45);
 }
 
 /* ---------------------------------------------------------------------------
@@ -568,7 +611,7 @@ body.paused main {
 }
 
 .price-head label {
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -577,7 +620,7 @@ body.paused main {
 
 .price-value {
   font-family: var(--font-mono);
-  font-size: 1.05rem;
+  font-size: 1.18rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
 }
@@ -586,7 +629,7 @@ body.paused main {
   display: flex;
   justify-content: space-between;
   margin-top: 4px;
-  font-size: 0.6rem;
+  font-size: 0.66rem;
   color: var(--text-faint);
 }
 
@@ -629,7 +672,7 @@ input[type='range']::-moz-range-thumb {
 
 .serving-control > label {
   flex-shrink: 0;
-  font-size: 0.64rem;
+  font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.12em;
@@ -660,7 +703,7 @@ select {
   -webkit-appearance: none;
   width: 100%;
   font: inherit;
-  font-size: 0.84rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: var(--text-primary);
   background: var(--surface-raised);
@@ -682,7 +725,7 @@ option {
 /* Status lines under the controls (serving fallback, auto-restock). */
 .note {
   margin: var(--space-sm) 0 0;
-  font-size: 0.76rem;
+  font-size: 0.82rem;
   color: var(--text-muted);
 }
 
@@ -722,12 +765,12 @@ option {
 }
 
 .recipe-name {
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   font-weight: 700;
 }
 
 .recipe-ingredients {
-  font-size: 0.78rem;
+  font-size: 0.86rem;
 }
 
 .upgrade-row {
@@ -746,6 +789,30 @@ option {
   margin-top: var(--space-sm);
 }
 
+/* Auto-restock zone inside the supplies panel: divider + explainer + live status. */
+.production-block {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-soft);
+}
+
+.production-block .sub-head {
+  margin: 0 0 4px;
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-faint);
+}
+
+.production-block .note {
+  margin: 0;
+}
+
+.production-block .note-status {
+  margin-top: 6px;
+}
+
 /* ---------------------------------------------------------------------------
    Event log — terminal-style strip at the bottom of the board
    --------------------------------------------------------------------------- */
@@ -759,7 +826,7 @@ option {
   max-height: 200px;
   overflow-y: auto;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   line-height: 1.5;
   color: var(--text-muted);
 }
@@ -906,7 +973,7 @@ option {
    --------------------------------------------------------------------------- */
 .muted {
   color: var(--text-muted);
-  font-size: 0.78rem;
+  font-size: 0.84rem;
 }
 
 /* game.js toggles .hidden on the skip button and the game-over overlay. */
@@ -918,9 +985,8 @@ option {
   main {
     grid-template-columns: 1fr 1fr;
     grid-template-areas:
-      'stall stall'
-      'recipe supplies'
-      'log log';
+      'stall recipe'
+      'supplies log';
   }
 }
 
@@ -959,10 +1025,6 @@ option {
   input[type='range']::-webkit-slider-thumb {
     width: 24px;
     height: 24px;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 }
 

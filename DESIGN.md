@@ -130,7 +130,7 @@ Fully upgraded (100): ~0.3/s → about 18 per minute.
 **Opening hours (day/night cycle)** — the stall is open from 08:00 to 23:00
 in-game time (1 tick = 10 minutes). While closed, no customers arrive (hard
 gate, zero traffic at night). The header shows an OPEN/CLOSED badge (PAUSED
-while paused) with a sun/moon icon that cross-fades on the phase change —
+while paused) with a sun/moon icon that swaps instantly on the phase change —
 CLOSED means night hours only — boundary events are logged ("The stall opens for the day!" / "Closing time — the
 stall is now closed.") and at closing the day is recapped ("Today: X cups sold,
 $Y earned."). The clock starts at **06:00** — two hours before opening — so a new
@@ -237,56 +237,75 @@ Titles are display-only. No new mechanics — just reward for the grind.
 ## 10. UI — Modern Beverage Tycoon (dark glass theme)
 
 Visual identity: a sleek dark dashboard with neon "liquid" accents (cyan
-fizz, lemon yellow, cherry rose) and glassmorphic panels. All colors,
+fizz, lemon yellow, cherry rose; header statuses: emerald money, gold
+reputation, pink attractiveness) and glassmorphic panels. All colors,
 spacing and radii are CSS custom properties in `:root` (style.css), so the
 whole look is retunable in one place. Type: 'Outfit' for UI, 'JetBrains
 Mono' for the clock and stat numbers (Google Fonts, with system fallbacks).
+The board fills ~90% of the viewport (`main max-width: 90vw`) and the whole
+UI scales from one knob — `html { font-size: 17px }` — raise it when the
+dashboard needs to be easier to read.
 
 Layout (single page, matches the implemented layout):
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│ sticky glass header                                              │
-│  [logo] Fizz Liquids Empire     [●CLOSED] [🌙] 06:00 01/08/1990  │
-│         Sidewalk Stall          [⏸ Pause] [⏭ Wait until morning] │
-├───────────────────────────────────┬──────────────────────────────┤
-│ Stall — Fizzy Lemonade (cyan)    │ Recipe (lemon)               │
-│  MONEY $40  (hero stat)          │  Current: Fizzy Lemonade     │
-│  Stock 10/10 · Reputation 0      │  (water + lemon)             │
-│  Buy chance 50%                  │  Quality 50 · Attractiveness 10│
-│  Price $5 ────●──────── (slider) │  [Unlock Iced Lemon Fizz     │
-│  Serving [Fizzy Lemonade ▾]      │   — $250]                    │
-│  Restocking… 0/3                 ├──────────────────────────────┤
-│                                  │ Supplies (rose)              │
-│                                  │  Lemons 0                    │
-│                                  │  [Buy 10 lemons — $10]       │
-├───────────────────────────────────┴──────────────────────────────┤
-│ Event Log (bottom strip, terminal style)                        │
-│  > The stall opens for the day!                                 │
-│  > A customer bought a cup for $5.                              │
-└──────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────┐
+│ sticky glass header                                                    │
+│  [logo] Fizz Liquids Empire    [MONEY $40] [REPUTATION 0]              │
+│         Sidewalk Stall         [ATTRACTIVENESS 10]                     │
+│                                [●CLOSED] [🌙] 06:00 01/08/1990         │
+│                                [⏸ Pause] [⏭ Wait until morning]       │
+├──────────────────────────────────┬────────────────────────────────────┤
+│ Stall — Fizzy Lemonade (cyan)   │ Recipe (lemon)                     │
+│  Stock 10/10 · Buy chance 50%   │  Current: Fizzy Lemonade           │
+│  Price $5 ────●──── (slider)    │  (water + lemon)                   │
+│  Serving [Fizzy Lemonade ▾]     │  Quality 50                        │
+│                                  │  [Unlock Iced Lemon Fizz — $250]  │
+├──────────────────────────────────┼────────────────────────────────────┤
+│ Supplies (rose)                 │ Event Log (terminal strip,          │
+│  Lemons 0                       │ scrolls past ~200px)               │
+│  [Buy 10 lemons — $10]          │  > The stall opens for the day!    │
+│  AUTO-RESTOCK                   │  > A customer bought a cup for $5. │
+│  While stock is below 10 cups,  │                                    │
+│  the stall brews 1 cup every 3  │                                    │
+│  ticks — $1 + 1 lemon (Fizzy    │                                    │
+│  Lemonade) per cup.             │                                    │
+│  ● Restocking… 0/3              │                                    │
+└──────────────────────────────────┴────────────────────────────────────┘
   game over → overlay with Restart button
 ```
 
 Details worth knowing:
 
 - **Header** — sticky glass bar: brand (logo + title + company-title
-  milestone) on the left, timeline pill on the right. The timeline holds the
-  OPEN/CLOSED/PAUSED badge, a sun/moon icon that swaps instantly with the
-  day/night phase, the digital clock (mono, glowing), and the Pause/Play +
-  fast-forward pills.
+  milestone) on the left; on the right, the status blocks and the timeline.
+  **Money** (emerald green), **Reputation** (gold) and **Attractiveness**
+  (pink) are compact chips — uppercase label + mono value, the two stat
+  chips carry their tooltip help icons — each in its own accent color, so
+  the "grows all game" statuses read as a family next to the time controls.
+  The timeline pill holds the OPEN/CLOSED/PAUSED badge, a sun/moon icon
+  that swaps instantly with the day/night phase, the digital clock (mono,
+  glowing), and the Pause/Play + fast-forward pills.
 - **Panels** — dark glass cards (translucent surface over a fixed gradient
   backdrop, 16px radius; no `backdrop-filter` blur — it would re-composite
   the page on every tick) with a per-panel beverage accent stripe on top.
-  Stats are tiles: small muted uppercase labels over big mono numbers; money
-  is a full-width hero stat.
+  Stats are tiles: small muted uppercase labels over big mono numbers. The
+  stall shows Stock and Buy chance side by side — buy chance is driven by
+  the served recipe and the price, so it lives with the stall, not with the
+  global stats.
+- **Supplies & auto-restock** — one panel: lemons + the night buy button,
+  then an "Auto-restock" zone under a divider with a plain-language
+  explainer (rebuilt from CONFIG every render, so it never goes stale) and
+  the live status line (Stock full / Waiting for lemons / Restocking… n/3).
+- **Event log** — terminal-style strip under the Recipe panel; newest on
+  top, scrolls (single styled scrollbar) past ~200px of entries.
 - **Game feel** — deliberately static: no animations, transitions or
   backdrop-filter, so each tick's render is a cheap instant repaint
   (responsiveness over flourish). The paused state stripes the timeline and
   desaturates the board.
-- **Responsive** — dashboard grid (stall + log left, recipe + supplies
-  right) collapses to 2 columns at ≤1024px and one column at ≤768px; touch
-  targets grow to 44px on small screens.
+- **Responsive** — the 2×2 dashboard grid (stall|recipe over supplies|log)
+  collapses to one column at ≤768px; touch targets grow to 44px on small
+  screens.
 
 ## 11. File Structure & Architecture
 
@@ -358,11 +377,17 @@ The game is playable in the browser. Implemented so far:
   (`tests/clock.test.js`, `tests/supplies.test.js`, `tests/production.test.js`)
 - Balance pass — ongoing, tune CONFIG by playtesting
 - Modern Beverage Tycoon UI (v0.0.5) — dark glass dashboard (design tokens
-  in `:root`, sticky header, sun/moon day-night indicator, stat tiles,
-  per-panel accent stripes), static styling (no animations or blur, kept
-  for rendering performance; render() writes the DOM only on change),
-  paused stripes + board dim, responsive layout (2-col at ≤1024px, 1-col
-  at ≤768px, 44px touch targets)
+  in `:root`, sticky header with colored status blocks, sun/moon day-night
+  indicator, stat tiles, per-panel accent stripes), static styling (no
+  animations or blur, kept for rendering performance; render() writes the
+  DOM only on change), paused stripes + board dim, responsive layout
+  (2×2 grid collapsing to 1-col at ≤768px, 44px touch targets)
+- UI compactness & readability pass (issue #9) — board fills ~90vw with a
+  root font-size scale knob (17px), tight spacing, header status chips as
+  dedicated colored blocks (money green, reputation gold, attractiveness
+  pink), buy chance back in the stall panel, auto-restock moved into the
+  supplies panel with a CONFIG-driven explainer, 2×2 grid
+  (stall|recipe / supplies|log)
 
 Each feature landed as one small, self-contained step that left the game
 runnable in the browser.
