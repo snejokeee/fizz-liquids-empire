@@ -1,7 +1,7 @@
 # Fizz Liquids Empire — Design Document
 
-Version: 0.0.4
-Date: 2026-08-28
+Version: 0.0.5
+Date: 2026-08-29
 Status: implemented and playable in the browser; numbers are a first balance
 pass, tuned by playtesting.
 
@@ -40,7 +40,7 @@ making it better.
   names are flavor for now; lemons are the only purchasable supply)
 - Production lines, storage, employees
 - Marketing campaigns, events, weather
-- Save/load, sound, animations
+- Save/load, sound
 - Multiple locations or "empire" buildings
 
 Rule from AGENTS.md: *one small feature at a time, smallest useful version.*
@@ -129,9 +129,9 @@ Fully upgraded (100): ~0.3/s → about 18 per minute.
 
 **Opening hours (day/night cycle)** — the stall is open from 08:00 to 23:00
 in-game time (1 tick = 10 minutes). While closed, no customers arrive (hard
-gate, zero traffic at night). The header shows an OPEN/CLOSED badge — CLOSED
-means night hours only; while the simulation is paused the badge shows PAUSED —
-boundary events are logged ("The stall opens for the day!" / "Closing time — the
+gate, zero traffic at night). The header shows an OPEN/CLOSED badge (PAUSED
+while paused) with a sun/moon icon that cross-fades on the phase change —
+CLOSED means night hours only — boundary events are logged ("The stall opens for the day!" / "Closing time — the
 stall is now closed.") and at closing the day is recapped ("Today: X cups sold,
 $Y earned."). The clock starts at **06:00** — two hours before opening — so a new
 game begins in the closed phase with time to buy supplies before the first
@@ -234,45 +234,68 @@ Titles are display-only. No new mechanics — just reward for the grind.
 - **Win:** none. It's an open-ended grower. Milestones are the goals.
 - Purchases always require affordability — no debt, so money never goes negative.
 
-## 10. UI Sketch (single page, matches the implemented layout)
+## 10. UI — Modern Beverage Tycoon (dark glass theme)
+
+Visual identity: a sleek dark dashboard with neon "liquid" accents (cyan
+fizz, lemon yellow, cherry rose) and glassmorphic panels. All colors,
+spacing and radii are CSS custom properties in `:root` (style.css), so the
+whole look is retunable in one place. Type: 'Outfit' for UI, 'JetBrains
+Mono' for the clock and stat numbers (Google Fonts, with system fallbacks).
+
+Layout (single page, matches the implemented layout):
 
 ```
-┌──────────────────────────────────────────────┐
-│  FIZZ LIQUIDS EMPIRE        [Sidewalk Stall]  │  ← header title updates with milestones
-│  [CLOSED] 06:00 01/08/1990 [Pause] [Wait…]    │  ← timeline: badge, clock, skip controls
-├──────────────┬──────────────┬────────────────┤
-│  Stall —     │  Recipe      │  Event Log     │
-│  Fizzy       │  Current:    │  > A customer  │
-│  Lemonade    │  Fizzy       │    bought $5   │
-│  Money: $40  │  Lemonade    │  > walked away │
-│  Stock:      │  (water +    │                │
-│  10 / 10     │   lemon)     │                │
-│  Reputation:0│  Quality: 50 │                │
-│  Price: ===o-│  Attract.: 10│                │
-│    $5        │  [Unlock     │                │
-│  Buy chance: │   Iced Lemon │                │
-│  50%         │   Fizz —$250]│               │
-│  Serving:    │              │                │
-│  [Fizzy      │              │                │
-│  Lemonade ▾] │              │                │
-│  Restocking… │              │                │
-│  2/3         │              │                │
-├──────────────┼──────────────┴────────────────┤
-│  Supplies    │  Lemons: 0 ? │                │
-│  [Buy 10     │              │                │
-│   lemons —$10│              │                │
-│   (night)]   │              │                │
-├──────────────┴──────────────┴────────────────┤
-│  game over → overlay with Restart button     │
-└──────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│ sticky glass header                                              │
+│  [logo] Fizz Liquids Empire     [●CLOSED] [🌙] 06:00 01/08/1990  │
+│         Sidewalk Stall          [⏸ Pause] [⏭ Wait until morning] │
+├───────────────────────────────────┬──────────────────────────────┤
+│ Stall — Fizzy Lemonade (cyan)    │ Recipe (lemon)               │
+│  MONEY $40  (hero stat)          │  Current: Fizzy Lemonade     │
+│  Stock 10/10 · Reputation 0      │  (water + lemon)             │
+│  Buy chance 50%                  │  Quality 50 · Attractiveness 10│
+│  Price $5 ────●──────── (slider) │  [Unlock Iced Lemon Fizz     │
+│  Serving [Fizzy Lemonade ▾]      │   — $250]                    │
+│  Restocking… 0/3                 ├──────────────────────────────┤
+│                                  │ Supplies (rose)              │
+│                                  │  Lemons 0                    │
+│                                  │  [Buy 10 lemons — $10]       │
+├───────────────────────────────────┴──────────────────────────────┤
+│ Event Log (bottom strip, terminal style)                        │
+│  > The stall opens for the day!                                 │
+│  > A customer bought a cup for $5.                              │
+└──────────────────────────────────────────────────────────────────┘
+  game over → overlay with Restart button
 ```
+
+Details worth knowing:
+
+- **Header** — sticky glass bar: brand (logo + title + company-title
+  milestone) on the left, timeline pill on the right. The timeline holds the
+  OPEN/CLOSED/PAUSED badge, a sun/moon icon that cross-fades with the
+  day/night phase, the digital clock (mono, glowing), and the Pause/Play +
+  fast-forward pills.
+- **Panels** — glass cards (`backdrop-filter` blur over a fixed gradient
+  backdrop, translucent surface, 16px radius) with a per-panel beverage
+  accent stripe on top. Stats are tiles: small muted uppercase labels over
+  big mono numbers; money is a full-width hero stat.
+- **Game feel** — the clock pulses on every tick, money flashes green/red on
+  income/spending (`visual.js` toggles CSS classes only), log entries slide
+  in, buttons lift on hover and press down on click; the paused state
+  stripes the timeline and desaturates the board.
+- **Responsive** — dashboard grid (stall + log left, recipe + supplies
+  right) collapses to 2 columns at ≤1024px and one column at ≤768px; touch
+  targets grow to 44px on small screens.
 
 ## 11. File Structure & Architecture
 
 ```
-index.html   — page skeleton, UI panels
-style.css    — layout + styling
+index.html   — page skeleton, UI panels (semantic header/main/sections)
+style.css    — visual theme: design tokens in :root, dark glass panels,
+               micro-interaction animations, responsive rules
 game.js      — the whole game: state, config, actions, tick loop, render
+visual.js    — presentation-only polish: watches text changes and re-triggers
+               CSS animations (clock pulse, money flash); never touches state
 ```
 
 game.js is organized into fixed sections, top to bottom:
@@ -282,7 +305,9 @@ CONFIG → TITLES → STATE → els → HELPERS → RENDER → ACTIONS → TICK 
 ```
 
 Every new feature lands in one of these sections — the section names are the
-map of the codebase.
+map of the codebase. `visual.js` is deliberately separate from this pipeline:
+the smoke test loads only game.js, so visual.js must never read or write game
+state (it only toggles CSS classes) and is verified visually in the browser.
 
 Follows AGENTS.md: **state holds the truth, render draws it, actions change it.**
 `CONFIG` holds every tunable number from sections 5–6.
@@ -314,6 +339,11 @@ The game is playable in the browser. Implemented so far:
 - Fast-forward to the next day boundary — day → closing / night → morning
 - Smoke tests (`tests/smoke.js`)
 - Balance pass — ongoing, tune CONFIG by playtesting
+- Modern Beverage Tycoon UI (v0.0.5) — dark glass dashboard (design tokens
+  in `:root`, sticky header, sun/moon day-night indicator, stat tiles,
+  per-panel accent stripes), micro-interactions via `visual.js` (tick clock
+  pulse, money gain/loss flash), paused stripes + board dim, responsive
+  layout (2-col at ≤1024px, 1-col at ≤768px, 44px touch targets)
 
 Each feature landed as one small, self-contained step that left the game
 runnable in the browser.
@@ -329,8 +359,10 @@ runnable in the browser.
 ## 14. Stretch Goals (later, not MVP)
 
 Recipes & ingredients → production chain → marketing & events → multiple
-locations → save/load → sound & animations. Each one is its own small feature
-and its own learning step.
+locations → save/load → sound. Each one is its own small feature and its own
+learning step. The CSS micro-interactions from the UI overhaul (v0.0.5) are a
+first step toward full game animation (e.g. animated customers), which is
+still ahead on this track.
 
 The production chain is now **seeded**: lemons are the first supply with night
 shopping, and auto-restock converts them into cups. The recipe ladder is in

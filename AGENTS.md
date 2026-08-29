@@ -41,15 +41,17 @@ The game may eventually include:
 
 The long-term fantasy is not just selling drinks, but building a beverage brand.
 
-## Current Development Stage (v0.0.4)
+## Current Development Stage (v0.0.5)
 
-**Version 0.0.4 — the day/night cycle, night supplies, and recipe progression.**
+**Version 0.0.5 — the Modern Beverage Tycoon UI overhaul** (dark glass theme,
+micro-interactions, responsive layout) on top of the v0.0.4 feature set:
+day/night cycle, night supplies, and recipe progression.
 Design decisions live in `DESIGN.md` (the source of truth for numbers and roadmap).
 
 What exists:
 
 - vanilla HTML/CSS/JS — no frameworks, no build tools
-- three game files: `index.html`, `style.css`, `game.js`
+- four game files: `index.html`, `style.css`, `game.js`, `visual.js`
 - smoke tests for the game logic: `tests/smoke.js` — run with `node tests/smoke.js`
 - real-time simulation (1 tick/s), customers, sales, event log
 - player actions: price slider, serving recipe choice, recipe unlock (night)
@@ -66,6 +68,13 @@ What exists:
 - stall upgrade cut: attractiveness is a constant for now, freeing the stall for
   future capacity + production upgrades
 - reputation, company-title milestones, game over + restart
+- Modern Beverage Tycoon UI (v0.0.5): dark glass dashboard themed with CSS
+  custom properties (:root design tokens), sticky header with a digital clock
+  and sun/moon day-night indicator, stat tiles with mono numbers, per-panel
+  beverage accent stripes; micro-interactions (tick clock pulse, money
+  gain/loss flash) live in visual.js — presentation-only, it never touches
+  game state; the paused state stripes the timeline and dims the board;
+  responsive down to mobile (2-col ≤1024px, 1-col ≤768px, 44px touch targets)
 
 The learning focus is still fundamentals, not tooling — new tools are added
 only when they help learning or solve a real project need.
@@ -96,6 +105,14 @@ When working on this project:
 - keep the smoke test green: run `node tests/smoke.js` after changing game logic
 - avoid premature abstraction
 - avoid adding tools too early
+- NEVER build long multi-line text (issue bodies, commit messages, docs)
+  inside a shell command — e.g. `--body "$(cat <<'EOF' ... EOF)"` — the
+  nested quoting (double quotes + $() + heredoc) breaks on text full of
+  quotes, backticks and $ (like `'use strict';`) and fails with confusing
+  "unexpected EOF while looking for matching `'`" errors. Write the text to
+  a temp file with write_file and pass a file flag instead
+  (`gh issue create --body-file /tmp/body.md`). Keep heredocs only for
+  short, simple input with the delimiter quoted (`<<'EOF'`).
 - explain why a solution works
 - focus on one small feature at a time
 - make sure the UI reflects the game state clearly
@@ -134,6 +151,12 @@ game.js is organized into fixed sections: CONFIG → TITLES → STATE → els �
 HELPERS → RENDER → ACTIONS → TICK → GAME OVER → INIT. Every new feature
 lands in one of these sections.
 
+visual.js is a separate presentation-only layer: it watches text changes
+(MutationObserver) and re-triggers CSS animations (clock pulse, money
+gain/loss flash). It never reads or writes game state, and the smoke test
+loads only game.js — so visual.js polish is verified visually in the
+browser, not by the test.
+
 This pattern may evolve later.
 
 ## Agent Guidance
@@ -146,3 +169,5 @@ When helping with this project:
 - do not introduce frameworks or libraries unless clearly necessary
 - if a new tool is suggested, explain what problem it solves
 - keep the beginner learning curve in mind
+- keep presentation (style.css, visual.js) separate from game logic (game.js):
+  visual polish must never touch state, render or tick code

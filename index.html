@@ -3,94 +3,150 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1120">
   <title>Fizz Liquids Empire</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>Fizz Liquids Empire</h1>
-    <span class="company-title" id="company-title">Sidewalk Stall</span>
-    <div class="timeline" id="timeline">
-      <span class="status-badge open" id="status-badge">OPEN</span>
-      <span class="clock" id="clock">08:00 01/08/1990</span>
-      <button id="pause">Pause</button>
-      <button id="skip-time">Wait until closing</button>
+  <header class="app-header">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6.6 7h10.8l-1 14a2 2 0 0 1-2 1.8H9.6a2 2 0 0 1-2-1.8L6.6 7Z" fill="currentColor"/>
+        <path d="M6.6 7h10.8l1.2-2.6a.8.8 0 0 0-.7-1.15H6.1a.8.8 0 0 0-.7 1.15L6.6 7Z" fill="currentColor" opacity=".6"/>
+        <circle cx="12" cy="2.4" r="1" fill="currentColor"/>
+        <circle cx="14.9" cy="3.6" r=".8" fill="currentColor" opacity=".8"/>
+        <circle cx="9.1" cy="3.8" r=".8" fill="currentColor" opacity=".7"/>
+      </svg>
+      <div class="brand-text">
+        <h1>Fizz Liquids Empire</h1>
+        <span class="company-title" id="company-title">Sidewalk Stall</span>
+      </div>
+    </div>
+
+    <div class="timeline" id="timeline" role="group" aria-label="Game timeline">
+      <span class="status-badge closed" id="status-badge">CLOSED</span>
+      <span class="day-night" aria-hidden="true">
+        <span class="day-night-icon icon-sun">☀️</span>
+        <span class="day-night-icon icon-moon">🌙</span>
+      </span>
+      <span class="clock" id="clock">06:00 01/08/1990</span>
+      <div class="timeline-actions">
+        <button class="btn btn-pause" id="pause">Pause</button>
+        <button class="btn btn-skip" id="skip-time">Wait until morning</button>
+      </div>
     </div>
   </header>
 
   <main>
-    <section class="panel">
-      <h2>Stall — <span id="drink-name">Fizzy Lemonade</span></h2>
-      <p>Money: <strong>$<span id="money">0</span></strong></p>
-      <p>Stock: <strong><span id="stock">0</span> cups</strong></p>
-      <p>
-        Reputation: <strong>
-          <span id="reputation">0</span>
-          <span class="tooltip" id="tooltip-reputation"></span>
-          <span class="help-icon" data-tooltip="tooltip-reputation">?</span>
-        </strong>
-      </p>
+    <section class="panel panel-stall" aria-labelledby="stall-title">
+      <div class="panel-head">
+        <h2 id="stall-title">Stall</h2>
+        <span class="drink-chip">
+          <span class="chip-dot" aria-hidden="true"></span>
+          <span id="drink-name">Fizzy Lemonade</span>
+        </span>
+      </div>
 
-      <label for="price-slider">Price: <strong>$<span id="price">0</span></strong> per cup</label>
-      <input type="range" id="price-slider" min="1" max="10" step="1" value="5">
-      <p>
-        Buy chance: <strong id="buy-chance">0%</strong>
-        <span class="tooltip" id="tooltip-buy-chance"></span>
-        <span class="help-icon" data-tooltip="tooltip-buy-chance">?</span>
-      </p>
+      <div class="stats-grid">
+        <div class="stat stat-hero">
+          <span class="stat-label">Money</span>
+          <span class="stat-value stat-money">$<span id="money">40</span></span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Stock</span>
+          <span class="stat-value-row">
+            <span class="stat-value" id="stock">10 / 10</span>
+          </span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Reputation</span>
+          <span class="stat-value-row">
+            <span class="stat-value" id="reputation">0</span>
+            <span class="help-icon" data-tooltip="tooltip-reputation">?</span>
+          </span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Buy chance</span>
+          <span class="stat-value-row">
+            <span class="stat-value" id="buy-chance">50%</span>
+            <span class="help-icon" data-tooltip="tooltip-buy-chance">?</span>
+          </span>
+        </div>
+      </div>
 
-      <p>
-        Serving:
-        <select id="recipe-select"></select>
-        <span class="tooltip" id="tooltip-serving"></span>
+      <div class="price-control">
+        <div class="price-head">
+          <label for="price-slider">Price per cup</label>
+          <span class="price-value">$<span id="price">5</span></span>
+        </div>
+        <input type="range" id="price-slider" min="1" max="10" step="1" value="5">
+        <div class="price-scale" aria-hidden="true"><span>$1</span><span>$10</span></div>
+      </div>
+
+      <div class="serving-control">
+        <label for="recipe-select">Serving</label>
+        <div class="select-wrap">
+          <select id="recipe-select"></select>
+        </div>
         <span class="help-icon" data-tooltip="tooltip-serving">?</span>
-      </p>
-      <p class="muted" id="serving-note"></p>
-      <p class="muted" id="production-status"></p>
+      </div>
+      <p class="note" id="serving-note"></p>
+      <p class="note note-status" id="production-status"></p>
     </section>
 
-    <section class="panel">
-      <h2>Recipe</h2>
-      <p>
-        Current: <strong><span id="recipe-name">Fizzy Lemonade</span></strong>
-        <span class="muted">(<span id="recipe-ingredients">water + lemon</span>)</span>
-      </p>
-      <p>
-        Quality: <strong>
-          <span id="quality">0</span>
-          <span class="tooltip" id="tooltip-quality"></span>
-          <span class="help-icon" data-tooltip="tooltip-quality">?</span>
-        </strong>
-      </p>
-      <p>
-        Attractiveness: <strong>
-          <span id="attractiveness">0</span>
-          <span class="tooltip" id="tooltip-attractiveness"></span>
-          <span class="help-icon" data-tooltip="tooltip-attractiveness">?</span>
-        </strong>
-      </p>
-      <p class="upgrade-row">
-        <button id="upgrade-recipe">Unlock next recipe</button>
-        <span class="tooltip" id="tooltip-recipe"></span>
+    <section class="panel panel-recipe" aria-labelledby="recipe-title">
+      <div class="panel-head">
+        <h2 id="recipe-title">Recipe</h2>
+      </div>
+      <div class="recipe-current">
+        <span class="stat-label">Current</span>
+        <span class="recipe-name" id="recipe-name">Fizzy Lemonade</span>
+        <span class="muted recipe-ingredients">(<span id="recipe-ingredients">water + lemon</span>)</span>
+      </div>
+      <div class="stats-grid stats-grid-2">
+        <div class="stat">
+          <span class="stat-label">Quality</span>
+          <span class="stat-value-row">
+            <span class="stat-value" id="quality">50</span>
+            <span class="help-icon" data-tooltip="tooltip-quality">?</span>
+          </span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Attractiveness</span>
+          <span class="stat-value-row">
+            <span class="stat-value" id="attractiveness">10</span>
+            <span class="help-icon" data-tooltip="tooltip-attractiveness">?</span>
+          </span>
+        </div>
+      </div>
+      <div class="upgrade-row">
+        <button class="btn btn-accent" id="upgrade-recipe">Unlock next recipe</button>
         <span class="help-icon" data-tooltip="tooltip-recipe">?</span>
-      </p>
+      </div>
     </section>
 
-    <section class="panel">
-      <h2>Supplies</h2>
-      <p>
-        Lemons: <strong>
-          <span id="lemons">0</span>
-          <span class="tooltip" id="tooltip-lemons"></span>
+    <section class="panel panel-supplies" aria-labelledby="supplies-title">
+      <div class="panel-head">
+        <h2 id="supplies-title">Supplies</h2>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Lemons</span>
+        <span class="stat-value-row">
+          <span class="stat-value" id="lemons">0</span>
           <span class="help-icon" data-tooltip="tooltip-lemons">?</span>
-        </strong>
-      </p>
-      <button id="buy-lemons">Buy lemons</button>
+        </span>
+      </div>
+      <button class="btn btn-primary" id="buy-lemons">Buy lemons</button>
     </section>
 
-    <section class="panel">
-      <h2>Event Log</h2>
-      <ul id="log-list"></ul>
+    <section class="panel panel-log" aria-labelledby="log-title">
+      <div class="panel-head">
+        <h2 id="log-title">Event Log</h2>
+      </div>
+      <ul class="log-list" id="log-list"></ul>
     </section>
   </main>
 
@@ -99,10 +155,21 @@
       <h2>Game Over</h2>
       <p>You ran out of stock and couldn't afford supplies or production. Your drink empire fizzled out.</p>
       <p>Cups sold: <strong id="final-cups">0</strong></p>
-      <button id="restart">Start a new stall</button>
+      <button class="btn btn-primary" id="restart">Start a new stall</button>
     </div>
   </div>
 
+  <!-- Tooltip overlays live at the root so the paused-state filter on <main>
+       can never re-anchor their fixed positioning. game.js finds them by id. -->
+  <div class="tooltip" id="tooltip-reputation" role="tooltip"></div>
+  <div class="tooltip" id="tooltip-buy-chance" role="tooltip"></div>
+  <div class="tooltip" id="tooltip-serving" role="tooltip"></div>
+  <div class="tooltip" id="tooltip-quality" role="tooltip"></div>
+  <div class="tooltip" id="tooltip-attractiveness" role="tooltip"></div>
+  <div class="tooltip" id="tooltip-recipe" role="tooltip"></div>
+  <div class="tooltip" id="tooltip-lemons" role="tooltip"></div>
+
   <script src="game.js"></script>
+  <script src="visual.js"></script>
 </body>
 </html>
