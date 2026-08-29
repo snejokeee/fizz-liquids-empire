@@ -8,7 +8,6 @@
 const CONFIG = {
   starterMoney: 40,
   starterStock: 10,
-  starterAttractiveness: 10,
   defaultPrice: 5,
   tickIntervalMs: 1000, // one simulation tick per second
 
@@ -36,23 +35,29 @@ const CONFIG = {
   // supplies allow. Future stall upgrades will raise the capacity.
   stockCapacity: 10,
 
-  // Customer arrival chance per tick (DESIGN.md §6):
-  //   base + attractiveness × perAttractiveness
-  customerArrivalBase: 0.1,
-  customerArrivalPerAttractiveness: 0.002,
+  // Customer arrival chance per tick (DESIGN.md §6): base plus a word-of-mouth
+  // bonus from reputation (v0.0.6) — the more the brand is known, the more
+  // people show up. Replaces the old constant attractiveness traffic term.
+  customerArrivalBase: 0.25,
+  customerArrivalPerReputation: 0.00005,
 
   // Buy chance formula (DESIGN.md §6):
   //   clamp(min, max, 0.5 + (quality − price × priceWeight) / denominator
   //         + reputation / reputationBonus)
+  // Reputation is 0..1000 (v0.0.6), so at max it adds ~55.6 percentage
+  // points: the price penalty of $10 (5 points) is covered and the top
+  // recipe reaches the 100% cap — 100% happens only at max reputation +
+  // best recipe, at any price.
   buyChanceBase: 0.5,
   buyChancePriceWeight: 10,
   buyChanceDenominator: 200,
-  reputationBonusDenominator: 1000,
+  reputationBonusDenominator: 1800,
   buyChanceMin: 0.1,
-  buyChanceMax: 0.9,
+  buyChanceMax: 1.0,
 
-  reputationPerSale: 1,
-  reputationMax: 100,
+  // Reputation (0..1000) grows by the sale price per sale (v0.0.6): pricier
+  // sales build the brand more. Drives buy chance and word-of-mouth traffic.
+  reputationMax: 1000,
 
   // Recipe progression (the upgrade path): 5 tiers, each with a name, its
   // ingredient list (flavor for now — lemons stay the only purchasable supply),

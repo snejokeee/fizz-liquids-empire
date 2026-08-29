@@ -276,9 +276,8 @@ body::before {
   gap: var(--space-sm);
 }
 
-/* Header status chips: money (green), reputation (gold) and attractiveness
-   (pink) sit left of the timeline, each with its own accent; all share
-   .header-chip. */
+/* Header status chips: money (green) and reputation (gold) sit left of the
+   timeline, each with its own accent; all share .header-chip. */
 .header-chip {
   display: flex;
   flex-direction: column;
@@ -313,17 +312,6 @@ body::before {
 .header-reputation .stat-value {
   color: #fde68a;
   text-shadow: 0 0 14px rgba(251, 191, 36, 0.4);
-}
-
-.header-attractiveness {
-  align-items: flex-end;
-  background: linear-gradient(135deg, rgba(244, 114, 182, 0.14), rgba(15, 23, 42, 0.45));
-  border-color: rgba(244, 114, 182, 0.35);
-}
-
-.header-attractiveness .stat-value {
-  color: #f9a8d4;
-  text-shadow: 0 0 14px rgba(244, 114, 182, 0.4);
 }
 
 .chip-value-row {

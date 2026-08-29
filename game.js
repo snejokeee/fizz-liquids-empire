@@ -23,7 +23,6 @@ const els = {
   productionExplain: document.getElementById('production-explain'),
   buyLemons: document.getElementById('buy-lemons'),
   quality: document.getElementById('quality'),
-  attractiveness: document.getElementById('attractiveness'),
   drinkName: document.getElementById('drink-name'),
   recipeName: document.getElementById('recipe-name'),
   recipeIngredients: document.getElementById('recipe-ingredients'),
@@ -40,7 +39,7 @@ const els = {
 // ---------------------------------------------------------------------------
 // Only write the DOM when the displayed text actually changed. render() runs
 // every tick, and skipping no-op writes keeps the browser from re-laying-out
-// elements whose value did not move (e.g. attractiveness never changes).
+// elements whose value did not move.
 function setText(el, value) {
   const text = String(value);
   if (el.textContent !== text) el.textContent = text;
@@ -63,7 +62,7 @@ function render() {
   setText(els.money, state.money);
   setText(els.stock, `${state.stock} / ${CONFIG.stockCapacity}`);
   setText(els.lemons, state.lemons);
-  setText(els.reputation, state.reputation);
+  setText(els.reputation, `${state.reputation} / ${CONFIG.reputationMax}`);
   setText(els.clock, formatClock());
   const open = isOpen();
   // The badge reflects the simulation phase: OPEN/CLOSED from the clock, or
@@ -86,7 +85,6 @@ function render() {
   setText(els.buyChance, `${Math.round(buyChance() * 100)}%`);
   const effective = effectiveRecipe();
   setText(els.quality, effective.quality);
-  setText(els.attractiveness, state.attractiveness);
   setText(els.drinkName, effective.name);
   setText(els.recipeName, effective.name);
   setText(els.recipeIngredients, effective.ingredients);
@@ -222,12 +220,12 @@ function restart() {
     stock: CONFIG.starterStock,
     lemons: 0,
     price: CONFIG.defaultPrice,
-    attractiveness: CONFIG.starterAttractiveness,
     reputation: 0,
     cupsSold: 0,
     totalEarned: 0,
     dayCupsSold: 0,
     dayEarned: 0,
+    dayReputation: 0,
     recipeLevel: 1,
     servedLevel: 1,
     restockProgress: 0,
@@ -252,11 +250,12 @@ function handleDayBoundary(wasOpen) {
     // The stall opens for a new day: start fresh day counters.
     state.dayCupsSold = 0;
     state.dayEarned = 0;
+    state.dayReputation = 0;
     addLog('The stall opens for the day!');
   } else if (!isOpen() && wasOpen) {
     // Closing time: recap the day that just ended.
     addLog('Closing time — the stall is now closed.');
-    addLog(`Today: ${state.dayCupsSold} cups sold, $${state.dayEarned} earned.`);
+    addLog(`Today: ${state.dayCupsSold} cups sold, $${state.dayEarned} earned. Reputation +${state.dayReputation} → ${state.reputation}.`);
   }
 }
 
@@ -297,9 +296,7 @@ function tick() {
 
 function maybeCustomerArrives() {
   if (!isOpen()) return; // hard gate: no customers while the stall is closed (issue #2)
-  const chance = CONFIG.customerArrivalBase
-    + state.attractiveness * CONFIG.customerArrivalPerAttractiveness;
-  if (Math.random() < chance) {
+  if (Math.random() < customerArrivalChance()) {
     customerVisits();
   }
 }
@@ -312,10 +309,11 @@ function customerVisits() {
   if (Math.random() < buyChance()) {
     state.money += state.price;
     state.stock -= 1;
-    state.reputation = Math.min(
-      state.reputation + CONFIG.reputationPerSale,
-      CONFIG.reputationMax
-    );
+    // Reputation grows by the sale price (v0.0.6): pricier sales build the
+    // brand more. Feeds buy chance and word-of-mouth traffic.
+    const repGain = state.price;
+    state.reputation = Math.min(state.reputation + repGain, CONFIG.reputationMax);
+    state.dayReputation += repGain;
     state.cupsSold += 1;
     state.totalEarned += state.price;
     state.dayCupsSold += 1;

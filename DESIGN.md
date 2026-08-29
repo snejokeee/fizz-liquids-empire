@@ -1,6 +1,6 @@
 # Fizz Liquids Empire — Design Document
 
-Version: 0.0.5
+Version: 0.0.6
 Date: 2026-08-29
 Status: implemented and playable in the browser; numbers are a first balance
 pass, tuned by playtesting.
@@ -51,9 +51,9 @@ Everything below is chosen to be buildable and tunable with plain HTML/CSS/JS.
 ```
 tick (1s)
   ├─ auto-restock: 1 cup per 3 ticks while stock < capacity and supplies allow
-  └─ maybe a customer arrives          (based on attractiveness)
+  └─ maybe a customer arrives          (based on reputation word of mouth)
        └─ customer decides to buy      (based on quality vs. price)
-            ├─ buys  → money += price, stock -= 1, reputation += 1
+            ├─ buys  → money += price, stock -= 1, reputation += price
             └─ leaves → nothing (logged)
 player actions (phase-gated by day/night)
   ├─ set price (any time)
@@ -71,12 +71,12 @@ state = {
   stock:         10,   // cups ready to sell — capped at stockCapacity
   lemons:        0,    // supply crate — bought at night, consumed by production
   price:         5,    // $ per cup (player can change 1..10)
-  attractiveness: 10,  // 0..100, how many people notice the stall (fixed for now)
-  reputation:     0,   // 0..100, earned per sale, soft bonus to buying
+  reputation:     0,   // 0..1000, earned per sale (the sale price); buy chance + word of mouth
   cupsSold:       0,   // lifetime counter (milestones)
   totalEarned:    0,   // lifetime $ earned (milestones)
   dayCupsSold:    0,   // today's sales (daily recap at closing)
   dayEarned:      0,   // today's revenue (daily recap at closing)
+  dayReputation:  0,   // today's reputation gained (daily recap at closing)
   recipeLevel:    1,   // highest unlocked recipe tier (1..5); unlocks are night actions
   servedLevel:    1,   // recipe the stall serves (1..recipeLevel) — chosen in the UI
   restockProgress: 0,  // ticks worked toward the next auto-produced cup
@@ -105,13 +105,13 @@ the cups.
 | Gross margin at default | $3 per cup (Fizzy Lemonade) |
 | Clock speed | 10 in-game minutes per tick (1 tick = 1 real second) |
 | Recipe unlocks | Iced Lemon Fizz $250 · Citrus Sparkle $600 · Golden Citrus Punch $1,300 · Empire Signature $2,500 |
-| Attractiveness | fixed at 10 for now (the stall upgrade was cut; capacity upgrades come later) |
+| Customer arrivals | base 0.25/s + 0.00005 per reputation (word of mouth) → 0.25–0.3/s |
+| Reputation | 0–1000, grows by the sale price per sale; raises buy chance + arrival chance |
 
 Expected pacing at start: the game opens at 06:00 in the closed phase, so the
 first act is night shopping; the first recipe unlock ($250) is a multi-day
-savings goal ("from zero to hero") — a normal first day (~$80–90) cannot
-afford it on night 1. A perfect restock day (~$150–300) can, which is the
-documented edge case. Tunable later.
+savings goal ("from zero to hero") — at ~22 customers/day and 50% buy chance
+a normal day earns ~$55–70, so the unlock lands around day 4–5. Tunable later.
 
 All numbers live in one `CONFIG` object in the code (see section 11) so balance
 changes are a single edit — that is also the *why* of the design.
@@ -121,11 +121,15 @@ changes are a single edit — that is also the *why* of the design.
 **Arrival** — every tick, a customer appears with probability:
 
 ```
-customerChance = 0.1 + attractiveness * 0.002   // per second
+customerChance = 0.25 + reputation * 0.00005   // per second (word of mouth, v0.0.6)
 ```
 
-At start (attractiveness 10): ~0.12/s → about 7 customers per minute.
-Fully upgraded (100): ~0.3/s → about 18 per minute.
+At start (reputation 0): ~0.25/s → about 15 customers per minute.
+At max reputation (1000): ~0.3/s → about 18 per minute. The word-of-mouth
+bonus keeps the stall below the production cap (~0.33/s), so sold-outs stay
+rare even at max reputation. Reputation replaces the old constant
+attractiveness term — attractiveness was cut in v0.0.6 and its return as a
+stall-upgrade mechanic is tracked in a GitHub issue.
 
 **Opening hours (day/night cycle)** — the stall is open from 08:00 to 23:00
 in-game time (1 tick = 10 minutes). While closed, no customers arrive (hard
@@ -156,26 +160,36 @@ the stall status says "Waiting for lemons". The game-over rule accounts for
 the chain: with no stock you must be able to produce even one cup (DESIGN.md §9).
 
 **From zero to hero** — recipe unlock prices are deliberately steep relative
-to the starter budget: a normal first day (selling the free starter batch)
-leaves the player short of the first unlock ($250 vs. ~$80–90 on night 1), so
-nothing can be unlocked on the first night in normal play. The first recipe is
-a multi-day goal, which makes growth feel earned and keeps the early game
-about learning to sell and restock.
+to the starter budget: a normal first day (~$55–70 at $5, ~22 customers at
+50% buy) leaves the player short of the first unlock ($250), so nothing can
+be unlocked on the first night in normal play. The first recipe is a ~day 4–5
+goal, which makes growth feel earned and keeps the early game about learning
+to sell and restock.
 
 **Buy decision** — a customer buys with probability:
 
 ```
-buyChance = clamp(0.1, 0.9, 0.5 + (quality − price × 10) / 200 + reputation / 1000)
+buyChance = clamp(0.1, 1.0, 0.5 + (quality − price × 10) / 200 + reputation / 1800)
 ```
 
-Example at base values (quality 50, price $5): 0.5 → half of customers buy.
-Raise the price to $8: chance drops to ~0.35. Improve quality to 80: back to ~0.65.
+Example at base values (quality 50, price $5, reputation 0): 0.5 → half of
+customers buy. Raise the price to $8: chance drops to ~0.35. Improve quality
+to 80: back to ~0.5.
 This creates the core tension: *price high to earn more per cup, but too high and
 people walk away.* Unlocking a new recipe raises quality by 10 (50 → 60 → … → 90),
 which is +5 percentage points of buy chance per tier at the same price — the
 recipe ladder is the game's quality/buy-chance lever. Quality is the *served*
 recipe's quality: if the crate runs low on lemons and the stall falls back to a
 cheaper recipe, buy chance drops with it.
+
+**The 100% endgame fantasy (v0.0.6)** — reputation is 0–1000 and adds up to
+~55.6 percentage points, so it can fully cover the $10 price penalty (5
+points) and push the top recipe past the new 100% cap. The result: *100% buy
+chance only at max reputation + best recipe, at any price* — "sell my
+lemonade at $10 with 100% certainty" is the endgame goal. Below that combo
+the chance stays under 100%: best recipe but 900 reputation → 95%, max
+reputation but recipe 4 → ~96%. Reputation also feeds customer arrivals
+(§6 Arrival), so maxing it is doubly rewarding.
 
 **Sold out** — if stock is 0 when a customer wants to buy, they leave and the log
 shows "Sold out!". This teaches inventory pressure without extra systems.
@@ -209,7 +223,9 @@ each a milestone with its own ingredient list and quality:
 
 Growth in the MVP is numeric but visible:
 
-- **Reputation** (0–100) grows with each sale and nudges buy chance up.
+- **Reputation** (0–1000, v0.0.6) grows by the sale price with each sale and
+  has two jobs: it nudges buy chance up and it draws more customers (word of
+  mouth, §6). The daily recap reports the day's gain ("Reputation +X → Y").
 - **Lifetime stats** (`cupsSold`, `totalEarned`) feed **company titles** —
   pure flavor feedback so progress feels like an "empire" forming:
 
@@ -238,7 +254,7 @@ Titles are display-only. No new mechanics — just reward for the grind.
 
 Visual identity: a sleek dark dashboard with neon "liquid" accents (cyan
 fizz, lemon yellow, cherry rose; header statuses: emerald money, gold
-reputation, pink attractiveness) and glassmorphic panels. All colors,
+reputation) and glassmorphic panels. All colors,
 spacing and radii are CSS custom properties in `:root` (style.css), so the
 whole look is retunable in one place. Type: 'Outfit' for UI, 'JetBrains
 Mono' for the clock and stat numbers (Google Fonts, with system fallbacks).
@@ -251,8 +267,8 @@ Layout (single page, matches the implemented layout):
 ```
 ┌───────────────────────────────────────────────────────────────────────┐
 │ sticky glass header                                                    │
-│  [logo] Fizz Liquids Empire    [MONEY $40] [REPUTATION 0]              │
-│         Sidewalk Stall         [ATTRACTIVENESS 10]                     │
+│  [logo] Fizz Liquids Empire    [MONEY $40] [REPUTATION 0 / 1000]       │
+│         Sidewalk Stall                                                │
 │                                [●CLOSED] [🌙] 06:00 01/08/1990         │
 │                                [⏸ Pause] [⏭ Wait until morning]       │
 ├──────────────────────────────────┬────────────────────────────────────┤
@@ -279,10 +295,10 @@ Details worth knowing:
 
 - **Header** — sticky glass bar: brand (logo + title + company-title
   milestone) on the left; on the right, the status blocks and the timeline.
-  **Money** (emerald green), **Reputation** (gold) and **Attractiveness**
-  (pink) are compact chips — uppercase label + mono value, the two stat
-  chips carry their tooltip help icons — each in its own accent color, so
-  the "grows all game" statuses read as a family next to the time controls.
+  **Money** (emerald green) and **Reputation** (gold, shown as `0 / 1000`)
+  are compact chips — uppercase label + mono value, the reputation chip
+  carries its tooltip help icon — each in its own accent color, so the
+  "grows all game" statuses read as a family next to the time controls.
   The timeline pill holds the OPEN/CLOSED/PAUSED badge, a sun/moon icon
   that swaps instantly with the day/night phase, the digital clock (mono,
   glowing), and the Pause/Play + fast-forward pills.
@@ -370,11 +386,21 @@ The game is playable in the browser. Implemented so far:
   on the first night in normal play)
 - Recipe progression (5 tiers) — replaces the repeatable quality upgrade;
   each tier raises quality and with it the buy chance
-- Stall upgrade cut — attractiveness is a constant for now (future stall
-  upgrades will expand cup capacity instead)
 - Fast-forward to the next day boundary — day → closing / night → morning
+  (a pure time skip: no customers, no income during the jump)
+- Reputation rework (v0.0.6) — reputation extended to 0–1000 and grown by
+  the sale price; buy chance capped at 1.0 and reaching 100% only at max
+  reputation + best recipe (at any price); word of mouth: reputation also
+  raises customer arrivals (0.25 + 0.00005 × rep); daily recap reports the
+  day's reputation gain; gold chip shows `0 / 1000`
+- Attractiveness removed (v0.0.6) — dead constant; its traffic role moved to
+  reputation word of mouth; return as a stall-upgrade mechanic tracked in a
+  GitHub issue; header keeps the money + reputation chips only
+- Pacing pass (v0.0.6) — arrival base raised 0.1 → 0.25/s, first recipe
+  unlock lands around day 4–5 instead of day ~9
 - Smoke tests — `tests/smoke.js` runner + per-feature suites
-  (`tests/clock.test.js`, `tests/supplies.test.js`, `tests/production.test.js`)
+  (`tests/clock.test.js`, `tests/supplies.test.js`, `tests/production.test.js`,
+  `tests/reputation.test.js`)
 - Balance pass — ongoing, tune CONFIG by playtesting
 - Modern Beverage Tycoon UI (v0.0.5) — dark glass dashboard (design tokens
   in `:root`, sticky header with colored status blocks, sun/moon day-night
@@ -384,10 +410,9 @@ The game is playable in the browser. Implemented so far:
   (2×2 grid collapsing to 1-col at ≤768px, 44px touch targets)
 - UI compactness & readability pass (issue #9) — board fills ~90vw with a
   root font-size scale knob (17px), tight spacing, header status chips as
-  dedicated colored blocks (money green, reputation gold, attractiveness
-  pink), buy chance back in the stall panel, auto-restock moved into the
-  supplies panel with a CONFIG-driven explainer, 2×2 grid
-  (stall|recipe / supplies|log)
+  dedicated colored blocks (money green, reputation gold), buy chance back
+  in the stall panel, auto-restock moved into the supplies panel with a
+  CONFIG-driven explainer, 2×2 grid (stall|recipe / supplies|log)
 
 Each feature landed as one small, self-contained step that left the game
 runnable in the browser.
@@ -396,8 +421,9 @@ runnable in the browser.
 
 - Every number in sections 5–6 lives in `CONFIG` — never hardcode in logic.
 - Change one number at a time, then playtest.
-- Target pacing: first recipe unlock reachable within ~3 minutes of
-  fast-forward play; game over should be
+- Target pacing: first recipe unlock reachable around day 4–5 (~5–7 minutes
+  of real-time play; fast-forward is a pure time skip, so watching is how
+  money is made); game over should be
   possible only through neglect (raising price to $10 forever, never restocking).
 
 ## 14. Stretch Goals (later, not MVP)
@@ -412,6 +438,9 @@ animating only transform/opacity.
 The production chain is now **seeded**: lemons are the first supply with night
 shopping, and auto-restock converts them into cups. The recipe ladder is in
 place (5 tiers) with tiered lemon costs (1/1/2/2/3 per cup) and a serving
-fallback when the crate runs low. Still ahead on this track: the other
-supplies (ice, water), stall upgrades (faster/cheaper production, larger
-capacity), and anything beyond a single ingredient per cup.
+fallback when the crate runs low. Attractiveness is on hold — removed in
+v0.0.6 (its traffic role moved to reputation word of mouth) and tracked in a
+GitHub issue to return as a stall-visibility upgrade. Still ahead on this
+track: the other supplies (ice, water), stall upgrades (faster/cheaper
+production, larger capacity, attractiveness), and anything beyond a single
+ingredient per cup.

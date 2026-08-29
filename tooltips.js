@@ -28,13 +28,15 @@ function buyChanceBreakdown() {
 }
 
 function tooltipReputationHTML() {
-  const effect = state.reputation / CONFIG.reputationBonusDenominator;
+  const buyEffect = state.reputation / CONFIG.reputationBonusDenominator;
+  const arrival = customerArrivalChance();
   return `
     <div class="tooltip-header"><span class="tooltip-icon">●</span> Reputation</div>
     <div class="tooltip-stats">
       <div><span>Current</span><span>${state.reputation} / ${CONFIG.reputationMax}</span></div>
-      <div><span>Buy chance bonus</span><span>+${fmtPct(effect)}</span></div>
-      <div><span>Per sale</span><span>+${CONFIG.reputationPerSale}</span></div>
+      <div><span>Buy chance bonus</span><span>+${fmtPct(buyEffect)}</span></div>
+      <div><span>Arrival chance/tick</span><span>${fmtPct(arrival)}</span></div>
+      <div><span>Per sale</span><span>+${state.price} (sale price)</span></div>
     </div>`;
 }
 
@@ -50,19 +52,6 @@ function tooltipQualityHTML() {
       <div><span>Buy chance bonus</span><span>+${fmtPct(effect)}</span></div>
       <div><span>From recipe</span><span>${recipe.name}</span></div>
       <div><span>Next recipe adds</span><span>${nextGain}</span></div>
-    </div>`;
-}
-
-function tooltipAttractivenessHTML() {
-  const arrival = CONFIG.customerArrivalBase
-    + state.attractiveness * CONFIG.customerArrivalPerAttractiveness;
-  return `
-    <div class="tooltip-header"><span class="tooltip-icon">●</span> Attractiveness</div>
-    <div class="tooltip-stats">
-      <div><span>Current</span><span>${state.attractiveness}</span></div>
-      <div><span>Arrival chance/tick</span><span>${fmtPct(arrival)}</span></div>
-      <div><span>Base chance</span><span>${fmtPct(CONFIG.customerArrivalBase)}</span></div>
-      <div><span>Fixed for now</span><span>stall upgrades come later</span></div>
     </div>`;
 }
 
@@ -122,7 +111,6 @@ function tooltipServingHTML() {
 const TOOLTIP_CONTENT = {
   'tooltip-reputation': tooltipReputationHTML,
   'tooltip-quality': tooltipQualityHTML,
-  'tooltip-attractiveness': tooltipAttractivenessHTML,
   'tooltip-buy-chance': tooltipBuyChanceHTML,
   'tooltip-lemons': tooltipLemonsHTML,
   'tooltip-recipe': tooltipRecipeHTML,

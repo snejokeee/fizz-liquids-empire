@@ -29,7 +29,7 @@ assert(!isOpen(), 'stall closes at 23:00 (tick 102)');
 assert(els.statusBadge.textContent === 'CLOSED' && els.statusBadge.classList.contains('closed'), 'badge shows CLOSED');
 let texts = logTexts();
 assert(texts[1] === 'Closing time — the stall is now closed.', 'closing log line present');
-assert(/^Today: \d+ cups sold, \$\d+ earned\.$/.test(texts[0]), 'daily recap logged: ' + texts[0]);
+assert(/^Today: \d+ cups sold, \$\d+ earned\. Reputation \+\d+ → \d+\.$/.test(texts[0]), 'daily recap logged: ' + texts[0]);
 const salesAtClose = state.dayCupsSold;
 assert(salesAtClose === 90, '90 cups sold during the open day (deterministic run)');
 
@@ -73,7 +73,7 @@ skipToBoundary();
 assert(state.ticks - t1 === 90, 'day skip jumps 08:00 → 23:00 (90 ticks at 10 min/tick)');
 assert(!isOpen(), 'stall closed after day skip');
 assert(logTexts()[1] === 'Closing time — the stall is now closed.', 'closing log after day skip');
-assert(/^Today: \d+ cups sold, \$\d+ earned\.$/.test(logTexts()[0]), 'daily recap after day skip');
+assert(/^Today: \d+ cups sold, \$\d+ earned\. Reputation \+\d+ → \d+\.$/.test(logTexts()[0]), 'daily recap after day skip');
 assert(els.skipTime.textContent === 'Wait until morning', 'label says "Wait until morning" while closed');
 const t2 = state.ticks;
 skipToBoundary();

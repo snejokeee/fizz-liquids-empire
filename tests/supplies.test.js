@@ -36,7 +36,6 @@ assert(els.upgradeRecipe.disabled === true,
 upgradeRecipe();
 assert(state.recipeLevel === 1 && effectiveRecipe().quality === 50, 'no recipe unlock on the first night (from zero to hero)');
 assert(logTexts()[0] === 'Not enough money for Iced Lemon Fizz ($250).', 'first-night recipe unlock is money-blocked');
-assert(state.attractiveness === 10, 'attractiveness is a constant after the stall upgrade was cut');
 
 // after saving up, the recipe unlock becomes affordable and works while closed
 state.lemons = 10; // so the new recipe is actually servable (no fallback)

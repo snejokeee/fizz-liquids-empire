@@ -41,11 +41,12 @@ The game may eventually include:
 
 The long-term fantasy is not just selling drinks, but building a beverage brand.
 
-## Current Development Stage (v0.0.5)
+## Current Development Stage (v0.0.6)
 
-**Version 0.0.5 — the Modern Beverage Tycoon UI overhaul** (dark glass theme,
-micro-interactions, responsive layout) on top of the v0.0.4 feature set:
-day/night cycle, night supplies, and recipe progression.
+**Version 0.0.6 — the reputation rework & pacing pass** (reputation 0–1000
+with buy chance + word-of-mouth traffic, attractiveness removed, faster
+early game) on top of the v0.0.5 feature set: day/night cycle, night
+supplies, and recipe progression.
 Design decisions live in `DESIGN.md` (the source of truth for numbers and roadmap).
 
 What exists:
@@ -57,7 +58,7 @@ What exists:
   `tests/*.test.js` files — run with `node tests/smoke.js`
 - real-time simulation (1 tick/s), customers, sales, event log
 - player actions: price slider, serving recipe choice, recipe unlock (night)
-- day/night cycle: opens 08:00–23:00, game starts at 06:00 (pre-opening night shopping), OPEN/CLOSED badge, daily recap, fast-forward to the next day boundary
+- day/night cycle: opens 08:00–23:00, game starts at 06:00 (pre-opening night shopping), OPEN/CLOSED badge, daily recap (incl. the day's reputation gain), fast-forward to the next day boundary
 - night supplies (lemons): buy lemons while closed, auto-restock consumes money + lemons (production chain seed)
 - auto-restock: the stall produces cups by itself while stock is below capacity
   — costs $1 + lemons per cup, takes 3 ticks per cup, runs day/night and during
@@ -67,12 +68,21 @@ What exists:
   a multi-day goal ("from zero to hero"); higher tiers cost more lemons per cup,
   and the stall falls back to the best recipe it can still make when the crate
   runs low
-- stall upgrade cut: attractiveness is a constant for now, freeing the stall for
-  future capacity + production upgrades
-- reputation, company-title milestones, game over + restart
+- reputation rework (v0.0.6): reputation is 0–1000, grows by the sale price,
+  and has two jobs — it raises the buy chance AND draws more customers (word
+  of mouth: arrival = 0.25/s + 0.00005 per reputation); buy chance is capped
+  at 100% and reaches it only at max reputation + best recipe (at any price),
+  so "sell my lemonade at $10 with 100% certainty" is the endgame fantasy
+- attractiveness removed (v0.0.6): it was a dead constant; its traffic role
+  moved to reputation word of mouth, and bringing it back later (as a stall
+  upgrade) is tracked in a GitHub issue
+- pacing pass (v0.0.6): arrival base raised 0.1 → 0.25/s (~2× more customers),
+  so the first recipe unlock lands around day 4–5 instead of day ~9; fast-
+  forward stays a pure time skip (no income during the jump)
+- company-title milestones, game over + restart
 - Modern Beverage Tycoon UI (v0.0.5): dark glass dashboard themed with CSS
   custom properties (:root design tokens), sticky header with colored status
-  blocks (money green, reputation gold, attractiveness pink) left of the
+  blocks (money green, reputation gold) left of the
   timeline pill (digital clock + sun/moon day-night indicator), a 2×2 board
   grid (stall|recipe / supplies|log) that fills ~90vw with a root font-size
   scale knob (17px), stat tiles with mono numbers, per-panel beverage

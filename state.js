@@ -16,12 +16,12 @@ const state = {
   stock: CONFIG.starterStock,
   lemons: 0, // supply crate: bought at night, consumed by production (issue #5)
   price: CONFIG.defaultPrice,
-  attractiveness: CONFIG.starterAttractiveness, // fixed for now — the stall upgrade was cut
-  reputation: 0,
+  reputation: 0, // 0..1000: grows by sale price; buy chance + word-of-mouth traffic (v0.0.6)
   cupsSold: 0,
   totalEarned: 0,
   dayCupsSold: 0, // today's sales, reset when the stall opens (issue #2)
   dayEarned: 0, // today's revenue, reset when the stall opens (issue #2)
+  dayReputation: 0, // today's reputation gained, reset on opening (v0.0.6)
   recipeLevel: 1, // highest unlocked recipe tier (1..5); unlocks are night actions
   servedLevel: 1, // recipe the stall serves (1..recipeLevel); chosen in the UI
   restockProgress: 0, // ticks worked toward the next auto-produced cup
@@ -94,6 +94,13 @@ function recipeUnlockCost() {
 
 function recipeMastered() {
   return state.recipeLevel >= CONFIG.recipes.length;
+}
+
+// Word of mouth (v0.0.6): customers arrive on a base chance plus a bonus from
+// reputation — the more the brand is known, the more people show up. Replaces
+// the old attractiveness traffic term; feeds maybeCustomerArrives() in game.js.
+function customerArrivalChance() {
+  return CONFIG.customerArrivalBase + state.reputation * CONFIG.customerArrivalPerReputation;
 }
 
 function buyChance() {
