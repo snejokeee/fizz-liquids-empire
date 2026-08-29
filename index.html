@@ -169,6 +169,11 @@
   <div class="tooltip" id="tooltip-recipe" role="tooltip"></div>
   <div class="tooltip" id="tooltip-lemons" role="tooltip"></div>
 
+  <!-- Plain script tags in dependency order: each file shares the global
+       scope, so config.js must load first and game.js last. -->
+  <script src="config.js"></script>
+  <script src="state.js"></script>
+  <script src="tooltips.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

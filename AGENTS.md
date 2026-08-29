@@ -51,8 +51,10 @@ Design decisions live in `DESIGN.md` (the source of truth for numbers and roadma
 What exists:
 
 - vanilla HTML/CSS/JS — no frameworks, no build tools
-- three game files: `index.html`, `style.css`, `game.js`
-- smoke tests for the game logic: `tests/smoke.js` — run with `node tests/smoke.js`
+- six game files: `index.html`, `style.css`, `config.js`, `state.js`,
+  `tooltips.js`, `game.js` — plain `<script>` tags in dependency order
+- smoke tests for the game logic: `tests/smoke.js` (runner) + per-feature
+  `tests/*.test.js` files — run with `node tests/smoke.js`
 - real-time simulation (1 tick/s), customers, sales, event log
 - player actions: price slider, serving recipe choice, recipe unlock (night)
 - day/night cycle: opens 08:00–23:00, game starts at 06:00 (pre-opening night shopping), OPEN/CLOSED badge, daily recap, fast-forward to the next day boundary
@@ -143,14 +145,23 @@ state → render → actions
 
 Meaning:
 
-- game state holds the truth (game.js, STATE section)
+- game state holds the truth (state.js, STATE section)
 - render updates the UI based on state (RENDER section)
 - actions change the state (ACTIONS section)
-- all tunable numbers live in one CONFIG object (CONFIG section)
+- all tunable numbers live in one CONFIG object (config.js, CONFIG section)
 
-game.js is organized into fixed sections: CONFIG → TITLES → STATE → els →
-HELPERS → RENDER → ACTIONS → TICK → GAME OVER → INIT. Every new feature
-lands in one of these sections.
+The codebase is split into plain `<script>` files that share the global
+scope, loaded in dependency order (config.js → state.js → tooltips.js →
+game.js) — no build tools, the game opens by double-clicking index.html:
+
+- `config.js` — CONFIG + TITLES: pure data, no dependencies
+- `state.js` — state + the pure rules (clock, recipes, buy chance); no DOM
+- `tooltips.js` — the hover-help UI feature; reads state, never mutates it
+- `game.js` — the rest: els, setText/addLog, RENDER, ACTIONS, TICK,
+  GAME OVER, INIT
+
+game.js is organized into fixed sections: els → HELPERS → RENDER → ACTIONS →
+TICK → GAME OVER → INIT. Every new feature lands in one of these sections.
 
 Styling is deliberately static: no animations, transitions or
 backdrop-filter, so the per-tick render is a cheap instant repaint. render()

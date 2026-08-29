@@ -290,28 +290,44 @@ Details worth knowing:
 
 ## 11. File Structure & Architecture
 
+The game is vanilla HTML/CSS/JS — no build tools, no ES modules. It is split
+into plain files loaded by `<script>` tags in dependency order, each sharing
+the global scope (a `const` in one file is visible in the next), so the game
+opens by double-clicking `index.html`:
+
 ```
+config.js    — game data only: CONFIG (tunable numbers) + TITLES (milestones)
+state.js     — the state object + pure rules (clock, recipes, buy chance)
+tooltips.js  — the hover-help UI feature (content builders + positioning)
+game.js      — the rest: els, addLog, RENDER, ACTIONS, TICK, GAME OVER, INIT
 index.html   — page skeleton, UI panels (semantic header/main/sections)
 style.css    — visual theme: design tokens in :root, dark glass panels,
                static styling (no animations/blur), responsive rules
-game.js      — the whole game: state, config, actions, tick loop, render
+```
+
+Script load order (the contract):
+
+```
+config.js → state.js → tooltips.js → game.js
 ```
 
 game.js is organized into fixed sections, top to bottom:
 
 ```
-CONFIG → TITLES → STATE → els → HELPERS → RENDER → ACTIONS → TICK → GAME OVER → INIT
+els → HELPERS → RENDER → ACTIONS → TICK → GAME OVER → INIT
 ```
 
-Every new feature lands in one of these sections — the section names are the
-map of the codebase. Styling is deliberately static (no animations,
-transitions or backdrop-filter), and render() writes the DOM only when a
-displayed value actually changes (the setText helper) — keeping the per-tick
-repaint cheap. The smoke test loads only game.js with a stubbed DOM; visuals
-are verified by playing in the browser.
+Every new feature lands in one of these sections (or in the file that owns
+its data) — the section names are the map of the codebase. Styling is
+deliberately static (no animations, transitions or backdrop-filter), and
+render() writes the DOM only when a displayed value actually changes (the
+setText helper) — keeping the per-tick repaint cheap. The smoke test runner
+(tests/smoke.js) boots the game files in a stubbed-DOM vm and runs the
+per-feature test suites (tests/*.test.js — clock, supplies, production),
+one fresh game per file; visuals are verified by playing in the browser.
 
 Follows AGENTS.md: **state holds the truth, render draws it, actions change it.**
-`CONFIG` holds every tunable number from sections 5–6.
+`CONFIG` (config.js) holds every tunable number from sections 5–6.
 
 ## 12. Implementation Status
 
@@ -338,7 +354,8 @@ The game is playable in the browser. Implemented so far:
 - Stall upgrade cut — attractiveness is a constant for now (future stall
   upgrades will expand cup capacity instead)
 - Fast-forward to the next day boundary — day → closing / night → morning
-- Smoke tests (`tests/smoke.js`)
+- Smoke tests — `tests/smoke.js` runner + per-feature suites
+  (`tests/clock.test.js`, `tests/supplies.test.js`, `tests/production.test.js`)
 - Balance pass — ongoing, tune CONFIG by playtesting
 - Modern Beverage Tycoon UI (v0.0.5) — dark glass dashboard (design tokens
   in `:root`, sticky header, sun/moon day-night indicator, stat tiles,
