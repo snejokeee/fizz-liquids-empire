@@ -272,17 +272,18 @@ Details worth knowing:
 
 - **Header** — sticky glass bar: brand (logo + title + company-title
   milestone) on the left, timeline pill on the right. The timeline holds the
-  OPEN/CLOSED/PAUSED badge, a sun/moon icon that cross-fades with the
+  OPEN/CLOSED/PAUSED badge, a sun/moon icon that swaps instantly with the
   day/night phase, the digital clock (mono, glowing), and the Pause/Play +
   fast-forward pills.
-- **Panels** — glass cards (`backdrop-filter` blur over a fixed gradient
-  backdrop, translucent surface, 16px radius) with a per-panel beverage
-  accent stripe on top. Stats are tiles: small muted uppercase labels over
-  big mono numbers; money is a full-width hero stat.
-- **Game feel** — the clock pulses on every tick, money flashes green/red on
-  income/spending (`visual.js` toggles CSS classes only), log entries slide
-  in, buttons lift on hover and press down on click; the paused state
-  stripes the timeline and desaturates the board.
+- **Panels** — dark glass cards (translucent surface over a fixed gradient
+  backdrop, 16px radius; no `backdrop-filter` blur — it would re-composite
+  the page on every tick) with a per-panel beverage accent stripe on top.
+  Stats are tiles: small muted uppercase labels over big mono numbers; money
+  is a full-width hero stat.
+- **Game feel** — deliberately static: no animations, transitions or
+  backdrop-filter, so each tick's render is a cheap instant repaint
+  (responsiveness over flourish). The paused state stripes the timeline and
+  desaturates the board.
 - **Responsive** — dashboard grid (stall + log left, recipe + supplies
   right) collapses to 2 columns at ≤1024px and one column at ≤768px; touch
   targets grow to 44px on small screens.
@@ -292,10 +293,8 @@ Details worth knowing:
 ```
 index.html   — page skeleton, UI panels (semantic header/main/sections)
 style.css    — visual theme: design tokens in :root, dark glass panels,
-               micro-interaction animations, responsive rules
+               static styling (no animations/blur), responsive rules
 game.js      — the whole game: state, config, actions, tick loop, render
-visual.js    — presentation-only polish: watches text changes and re-triggers
-               CSS animations (clock pulse, money flash); never touches state
 ```
 
 game.js is organized into fixed sections, top to bottom:
@@ -305,9 +304,11 @@ CONFIG → TITLES → STATE → els → HELPERS → RENDER → ACTIONS → TICK 
 ```
 
 Every new feature lands in one of these sections — the section names are the
-map of the codebase. `visual.js` is deliberately separate from this pipeline:
-the smoke test loads only game.js, so visual.js must never read or write game
-state (it only toggles CSS classes) and is verified visually in the browser.
+map of the codebase. Styling is deliberately static (no animations,
+transitions or backdrop-filter), and render() writes the DOM only when a
+displayed value actually changes (the setText helper) — keeping the per-tick
+repaint cheap. The smoke test loads only game.js with a stubbed DOM; visuals
+are verified by playing in the browser.
 
 Follows AGENTS.md: **state holds the truth, render draws it, actions change it.**
 `CONFIG` holds every tunable number from sections 5–6.
@@ -341,9 +342,10 @@ The game is playable in the browser. Implemented so far:
 - Balance pass — ongoing, tune CONFIG by playtesting
 - Modern Beverage Tycoon UI (v0.0.5) — dark glass dashboard (design tokens
   in `:root`, sticky header, sun/moon day-night indicator, stat tiles,
-  per-panel accent stripes), micro-interactions via `visual.js` (tick clock
-  pulse, money gain/loss flash), paused stripes + board dim, responsive
-  layout (2-col at ≤1024px, 1-col at ≤768px, 44px touch targets)
+  per-panel accent stripes), static styling (no animations or blur, kept
+  for rendering performance; render() writes the DOM only on change),
+  paused stripes + board dim, responsive layout (2-col at ≤1024px, 1-col
+  at ≤768px, 44px touch targets)
 
 Each feature landed as one small, self-contained step that left the game
 runnable in the browser.
@@ -360,9 +362,10 @@ runnable in the browser.
 
 Recipes & ingredients → production chain → marketing & events → multiple
 locations → save/load → sound. Each one is its own small feature and its own
-learning step. The CSS micro-interactions from the UI overhaul (v0.0.5) are a
-first step toward full game animation (e.g. animated customers), which is
-still ahead on this track.
+learning step. The UI is deliberately animation-free for now — static
+styling keeps the per-tick render cheap. Real game animation (e.g. animated
+customers) is still ahead on this track and should be added sparingly,
+animating only transform/opacity.
 
 The production chain is now **seeded**: lemons are the first supply with night
 shopping, and auto-restock converts them into cups. The recipe ladder is in

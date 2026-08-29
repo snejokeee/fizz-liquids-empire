@@ -54,6 +54,7 @@ const sandbox = {
     createElement: () => makeEl(),
     querySelectorAll: () => [],
     addEventListener: () => {},
+    body: makeEl(),
   },
   window: { innerWidth: 800, innerHeight: 600 },
   setInterval: (fn) => { sandbox.__tick = fn; return 1; },

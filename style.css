@@ -2,14 +2,21 @@
    Fizz Liquids Empire — visual theme
    All colors, spacing and radii live in :root; components only consume the
    variables, so the whole look can be retuned in one place.
+
+   Performance rule: this stylesheet is deliberately static — no animations,
+   no transitions, no backdrop-filter. render() runs every tick, and every
+   frame the browser repaints whatever changed; animated or blurred styles
+   turn that 1 Hz refresh into constant compositing work. Instant state
+   changes (class swaps, opacity flips) keep the tick cheap and the UI
+   responsive, which matters more than flourish in a 1-tick-per-second game.
    --------------------------------------------------------------------------- */
 :root {
   /* surfaces */
   --bg-primary: #0b1120;
   --bg-deep: #060a15;
-  --surface: rgba(30, 41, 59, 0.55);
+  --surface: rgba(30, 41, 59, 0.92);
   --surface-solid: #16213a;
-  --surface-raised: rgba(15, 23, 42, 0.6);
+  --surface-raised: rgba(15, 23, 42, 0.9);
   --border-soft: rgba(148, 163, 184, 0.16);
   --border-strong: rgba(148, 163, 184, 0.34);
 
@@ -55,7 +62,9 @@
   box-sizing: border-box;
 }
 
-/* Fixed gradient backdrop so the glass panels always have something to blur. */
+/* Fixed gradient backdrop. It is static (painted once), so the translucent
+   panels above it get the dark-glass look without backdrop-filter blur —
+   blur would have to re-composite the whole page on every tick. */
 body {
   margin: 0;
   font-family: var(--font-ui);
@@ -87,7 +96,7 @@ body::before {
 }
 
 /* ---------------------------------------------------------------------------
-   Header — sticky glass bar with brand + timeline controls
+   Header — sticky bar with brand + timeline controls
    --------------------------------------------------------------------------- */
 .app-header {
   position: sticky;
@@ -99,9 +108,7 @@ body::before {
   flex-wrap: wrap;
   gap: var(--space-sm) var(--space-md);
   padding: var(--space-sm) var(--space-md);
-  background: rgba(11, 17, 32, 0.72);
-  backdrop-filter: blur(14px) saturate(1.3);
-  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  background: rgba(11, 17, 32, 0.94);
   border-bottom: 1px solid var(--border-soft);
 }
 
@@ -143,6 +150,8 @@ body::before {
 
 /* ---------------------------------------------------------------------------
    Timeline — status badge, day/night icon, digital clock, controls
+   game.js toggles .open (stall open, day) and .paused on the timeline, so
+   all three states are plain class swaps — no sibling selectors, no :has().
    --------------------------------------------------------------------------- */
 .timeline {
   display: flex;
@@ -152,11 +161,10 @@ body::before {
   border-radius: var(--radius-pill);
   background: linear-gradient(135deg, rgba(51, 65, 85, 0.35), rgba(15, 23, 42, 0.5));
   border: 1px solid var(--border-soft);
-  transition: background 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease;
 }
 
 /* Day: the timeline bar glows cyan while the stall is open. */
-.timeline:has(.status-badge.open) {
+.timeline.open {
   background: linear-gradient(135deg, rgba(6, 182, 212, 0.16), rgba(15, 23, 42, 0.45));
   border-color: rgba(6, 182, 212, 0.35);
   box-shadow: 0 0 20px rgba(6, 182, 212, 0.12);
@@ -198,10 +206,6 @@ body::before {
   color: #6ee7b7;
 }
 
-.status-badge.open::before {
-  animation: pulse-dot 1.8s ease-in-out infinite;
-}
-
 .status-badge.closed {
   background: rgba(148, 163, 184, 0.1);
   border: 1px solid var(--border-soft);
@@ -214,12 +218,9 @@ body::before {
   color: #fcd34d;
 }
 
-@keyframes pulse-dot {
-  50% { opacity: 0.35; }
-}
-
-/* Day/night icon: game.js swaps the badge classes; CSS cross-fades the icons.
-   Night (moon) is the default — the game starts at 06:00, pre-opening. */
+/* Day/night icon: the moon is the default (the game starts at 06:00,
+   pre-opening) and the sun replaces it the moment the timeline is .open.
+   An instant opacity swap — no cross-fade — keeps the swap free. */
 .day-night {
   position: relative;
   width: 26px;
@@ -236,25 +237,20 @@ body::before {
   font-size: 1.05rem;
   line-height: 1;
   opacity: 0;
-  transform: scale(0.4) rotate(-40deg);
-  transition: opacity 0.45s ease, transform 0.45s ease, filter 0.45s ease;
 }
 
 .icon-moon {
   opacity: 1;
-  transform: scale(1) rotate(0deg);
   filter: drop-shadow(0 0 5px rgba(148, 163, 184, 0.5));
 }
 
-#status-badge.open ~ .day-night .icon-sun {
+.timeline.open .icon-sun {
   opacity: 1;
-  transform: scale(1) rotate(0deg);
   filter: drop-shadow(0 0 6px rgba(250, 204, 21, 0.7));
 }
 
-#status-badge.open ~ .day-night .icon-moon {
+.timeline.open .icon-moon {
   opacity: 0;
-  transform: scale(0.4) rotate(40deg);
 }
 
 .clock {
@@ -268,24 +264,6 @@ body::before {
   color: var(--text-primary);
 }
 
-/* Tick pulse: visual.js re-triggers this whenever the clock text changes. */
-.clock.flash {
-  animation: clock-flash 0.35s ease;
-}
-
-@keyframes clock-flash {
-  0% {
-    color: var(--accent-cyan);
-    text-shadow: 0 0 14px rgba(6, 182, 212, 0.9);
-    transform: scale(1.06);
-  }
-  100% {
-    color: var(--text-primary);
-    text-shadow: none;
-    transform: scale(1);
-  }
-}
-
 .timeline-actions {
   display: flex;
   align-items: center;
@@ -293,7 +271,8 @@ body::before {
 }
 
 /* ---------------------------------------------------------------------------
-   Buttons — pill-shaped, tactile (hover lift, press-down scale)
+   Buttons — pill-shaped; hover is a plain color/border change (no lift, no
+   press-down scale, no transitions)
    --------------------------------------------------------------------------- */
 .btn {
   display: inline-flex;
@@ -311,18 +290,11 @@ body::before {
   border-radius: var(--radius-pill);
   cursor: pointer;
   white-space: nowrap;
-  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease,
-    box-shadow 0.18s ease, transform 0.12s ease;
 }
 
 .btn:hover:not(:disabled) {
-  background: rgba(148, 163, 184, 0.18);
+  background: rgba(148, 163, 184, 0.2);
   border-color: var(--border-strong);
-  transform: translateY(-1px);
-}
-
-.btn:active:not(:disabled) {
-  transform: scale(0.95);
 }
 
 .btn:disabled {
@@ -416,28 +388,26 @@ main {
     'stall stall stall stall stall stall stall recipe recipe recipe recipe recipe'
     'stall stall stall stall stall stall stall supplies supplies supplies supplies supplies'
     'log log log log log log log log log log log log';
-  transition: filter 0.4s ease;
 }
 
-/* Paused: the whole board desaturates and dims slightly. */
-body:has(.timeline.paused) main {
+/* Paused: the whole board desaturates and dims slightly. game.js toggles
+   .paused on <body>; the filter applies only while frozen, when nothing
+   repaints anyway. */
+body.paused main {
   filter: saturate(0.65) brightness(0.9);
 }
 
 /* ---------------------------------------------------------------------------
-   Panels — glassmorphic cards with a per-panel beverage accent stripe
+   Panels — dark glass cards with a per-panel beverage accent stripe
    --------------------------------------------------------------------------- */
 .panel {
   position: relative;
   overflow: hidden;
   padding: var(--space-md);
   background: var(--surface);
-  backdrop-filter: blur(12px) saturate(1.15);
-  -webkit-backdrop-filter: blur(12px) saturate(1.15);
   border: 1px solid var(--border-soft);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-panel);
-  transition: border-color 0.2s ease;
 }
 
 .panel:hover {
@@ -583,23 +553,6 @@ body:has(.timeline.paused) main {
   text-shadow: 0 0 14px rgba(6, 182, 212, 0.45);
 }
 
-/* visual.js flashes the money green on income, red on spending. */
-.stat-money.gain {
-  animation: money-gain 0.5s ease;
-}
-
-.stat-money.loss {
-  animation: money-loss 0.5s ease;
-}
-
-@keyframes money-gain {
-  30% { color: #6ee7b7; text-shadow: 0 0 16px rgba(52, 211, 153, 0.8); }
-}
-
-@keyframes money-loss {
-  30% { color: #fda4af; text-shadow: 0 0 16px rgba(244, 63, 94, 0.8); }
-}
-
 /* ---------------------------------------------------------------------------
    Price slider, serving selector, status lines
    --------------------------------------------------------------------------- */
@@ -657,15 +610,6 @@ input[type='range']::-webkit-slider-thumb {
   background: #e0f2fe;
   border: 3px solid var(--accent-cyan);
   box-shadow: 0 0 10px rgba(6, 182, 212, 0.6);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-}
-
-input[type='range']::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-}
-
-input[type='range']:active::-webkit-slider-thumb {
-  transform: scale(0.95);
 }
 
 input[type='range']::-moz-range-thumb {
@@ -724,7 +668,6 @@ select {
   border-radius: var(--radius-md);
   padding: 8px 32px 8px 12px;
   cursor: pointer;
-  transition: border-color 0.18s ease;
 }
 
 select:hover {
@@ -757,7 +700,6 @@ option {
   border-radius: 50%;
   background: var(--accent-cyan);
   box-shadow: 0 0 6px var(--accent-cyan);
-  animation: pulse-dot 1.4s ease-in-out infinite;
 }
 
 /* ---------------------------------------------------------------------------
@@ -827,18 +769,6 @@ option {
   background: var(--surface-raised);
   border-left: 2px solid var(--border-soft);
   border-radius: var(--radius-sm);
-  animation: log-in 0.3s ease;
-}
-
-@keyframes log-in {
-  from {
-    opacity: 0;
-    transform: translateY(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
 }
 
 .log-list::-webkit-scrollbar {
@@ -872,12 +802,10 @@ option {
   background: var(--accent-cyan);
   cursor: help;
   opacity: 0.85;
-  transition: transform 0.12s ease, opacity 0.12s ease;
 }
 
 .help-icon:hover {
   opacity: 1;
-  transform: scale(1.2);
 }
 
 /* Overlay tooltips are anchored to the viewport by game.js (position:fixed
@@ -889,14 +817,12 @@ option {
   padding: var(--space-sm) var(--space-md);
   font-size: 0.78rem;
   color: var(--text-primary);
-  background: rgba(15, 23, 42, 0.92);
-  backdrop-filter: blur(8px);
+  background: rgba(15, 23, 42, 0.97);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
   box-shadow: 0 12px 32px rgba(2, 6, 23, 0.55), 0 0 0 1px rgba(6, 182, 212, 0.06);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.15s ease;
 }
 
 .tooltip.visible {
@@ -947,8 +873,7 @@ option {
   align-items: center;
   justify-content: center;
   padding: var(--space-md);
-  background: rgba(2, 6, 23, 0.75);
-  backdrop-filter: blur(8px);
+  background: rgba(2, 6, 23, 0.88);
 }
 
 .overlay-box {
@@ -1048,15 +973,5 @@ option {
 
   .timeline-actions .btn {
     flex: 1;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
   }
 }

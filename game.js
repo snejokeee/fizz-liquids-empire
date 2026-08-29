@@ -145,6 +145,14 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+// Only write the DOM when the displayed text actually changed. render() runs
+// every tick, and skipping no-op writes keeps the browser from re-laying-out
+// elements whose value did not move (e.g. attractiveness never changes).
+function setText(el, value) {
+  const text = String(value);
+  if (el.textContent !== text) el.textContent = text;
+}
+
 function addLog(message) {
   const entry = document.createElement('li');
   entry.textContent = message;
@@ -422,61 +430,70 @@ function hideAllTooltips() {
 // so the page always mirrors state.
 // ---------------------------------------------------------------------------
 function render() {
-  els.money.textContent = state.money;
-  els.stock.textContent = `${state.stock} / ${CONFIG.stockCapacity}`;
-  els.lemons.textContent = state.lemons;
-  els.reputation.textContent = state.reputation;
-  els.clock.textContent = formatClock();
+  setText(els.money, state.money);
+  setText(els.stock, `${state.stock} / ${CONFIG.stockCapacity}`);
+  setText(els.lemons, state.lemons);
+  setText(els.reputation, state.reputation);
+  setText(els.clock, formatClock());
   const open = isOpen();
   // The badge reflects the simulation phase: OPEN/CLOSED from the clock, or
   // PAUSED when the player has stopped time — CLOSED is only about night hours.
-  els.statusBadge.textContent = state.paused ? 'PAUSED' : open ? 'OPEN' : 'CLOSED';
+  // The timeline classes (.open/.paused) drive the CSS day/night icons and
+  // the glow/stripes; <body>.paused drives the board-wide dim while frozen.
+  setText(els.statusBadge, state.paused ? 'PAUSED' : open ? 'OPEN' : 'CLOSED');
   els.statusBadge.classList.toggle('open', !state.paused && open);
   els.statusBadge.classList.toggle('closed', !state.paused && !open);
   els.statusBadge.classList.toggle('paused', state.paused);
   els.timeline.classList.toggle('paused', state.paused);
-  els.pause.textContent = state.paused ? 'Play' : 'Pause';
+  els.timeline.classList.toggle('open', !state.paused && open);
+  document.body.classList.toggle('paused', state.paused);
+  setText(els.pause, state.paused ? 'Play' : 'Pause');
   els.pause.disabled = state.gameOver;
   els.skipTime.classList.toggle('hidden', state.gameOver);
-  els.skipTime.textContent = open ? 'Wait until closing' : 'Wait until morning';
-  els.price.textContent = state.price;
+  setText(els.skipTime, open ? 'Wait until closing' : 'Wait until morning');
+  setText(els.price, state.price);
   els.priceSlider.value = state.price;
-  els.buyChance.textContent = `${Math.round(buyChance() * 100)}%`;
+  setText(els.buyChance, `${Math.round(buyChance() * 100)}%`);
   const effective = effectiveRecipe();
-  els.quality.textContent = effective.quality;
-  els.attractiveness.textContent = state.attractiveness;
-  els.drinkName.textContent = effective.name;
-  els.recipeName.textContent = effective.name;
-  els.recipeIngredients.textContent = effective.ingredients;
-  els.companyTitle.textContent = companyTitle();
-  els.finalCups.textContent = state.cupsSold;
+  setText(els.quality, effective.quality);
+  setText(els.attractiveness, state.attractiveness);
+  setText(els.drinkName, effective.name);
+  setText(els.recipeName, effective.name);
+  setText(els.recipeIngredients, effective.ingredients);
+  setText(els.companyTitle, companyTitle());
+  setText(els.finalCups, state.cupsSold);
 
   // Phase gating (issue #3): recipe unlocks and supply shopping are night
   // actions; the serving choice and auto-restock work any time.
   const affordable = (cost) => state.money >= cost && !state.gameOver;
   els.buyLemons.disabled = open || !affordable(lemonBatchCost());
-  els.buyLemons.textContent = `Buy ${CONFIG.lemonBatchSize} lemons — $${lemonBatchCost()}${open ? ' (only while closed)' : ''}`;
+  setText(els.buyLemons, `Buy ${CONFIG.lemonBatchSize} lemons — $${lemonBatchCost()}${open ? ' (only while closed)' : ''}`);
   const mastered = recipeMastered();
   const next = nextRecipe();
   els.upgradeRecipe.disabled = mastered || open || !affordable(recipeUnlockCost());
-  els.upgradeRecipe.textContent = mastered
+  setText(els.upgradeRecipe, mastered
     ? 'All recipes mastered'
-    : `Unlock ${next.name} — $${recipeUnlockCost()}${open ? ' (only while closed)' : ''}`;
+    : `Unlock ${next.name} — $${recipeUnlockCost()}${open ? ' (only while closed)' : ''}`);
 
-  // Serving selector: one option per unlocked recipe, current served level selected.
+  // Serving selector: one option per unlocked recipe, current served level
+  // selected. Options only change when a new recipe unlocks, so rebuild the
+  // list only then — render() runs every tick, and re-parsing identical HTML
+  // would churn the DOM for no reason.
   const options = CONFIG.recipes
     .slice(0, state.recipeLevel)
     .map((recipe, i) => `<option value="${i + 1}">${recipe.name}</option>`)
     .join('');
-  els.recipeSelect.innerHTML = options;
+  if (els.recipeSelect.innerHTML !== options) {
+    els.recipeSelect.innerHTML = options;
+  }
   els.recipeSelect.value = String(state.servedLevel);
   els.recipeSelect.disabled = state.gameOver;
   if (isFallingBack()) {
-    els.servingNote.textContent = `Out of lemons for ${servedRecipe().name} — serving ${effective.name}.`;
+    setText(els.servingNote, `Out of lemons for ${servedRecipe().name} — serving ${effective.name}.`);
   } else {
-    els.servingNote.textContent = `${servedRecipe().name} — ${servedRecipe().lemonsPerCup} lemon${servedRecipe().lemonsPerCup === 1 ? '' : 's'} + $1 per cup`;
+    setText(els.servingNote, `${servedRecipe().name} — ${servedRecipe().lemonsPerCup} lemon${servedRecipe().lemonsPerCup === 1 ? '' : 's'} + $1 per cup`);
   }
-  els.productionStatus.textContent = productionStatusText();
+  setText(els.productionStatus, productionStatusText());
 }
 
 // ---------------------------------------------------------------------------

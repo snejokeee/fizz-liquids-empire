@@ -51,7 +51,7 @@ Design decisions live in `DESIGN.md` (the source of truth for numbers and roadma
 What exists:
 
 - vanilla HTML/CSS/JS — no frameworks, no build tools
-- four game files: `index.html`, `style.css`, `game.js`, `visual.js`
+- three game files: `index.html`, `style.css`, `game.js`
 - smoke tests for the game logic: `tests/smoke.js` — run with `node tests/smoke.js`
 - real-time simulation (1 tick/s), customers, sales, event log
 - player actions: price slider, serving recipe choice, recipe unlock (night)
@@ -71,10 +71,11 @@ What exists:
 - Modern Beverage Tycoon UI (v0.0.5): dark glass dashboard themed with CSS
   custom properties (:root design tokens), sticky header with a digital clock
   and sun/moon day-night indicator, stat tiles with mono numbers, per-panel
-  beverage accent stripes; micro-interactions (tick clock pulse, money
-  gain/loss flash) live in visual.js — presentation-only, it never touches
-  game state; the paused state stripes the timeline and dims the board;
-  responsive down to mobile (2-col ≤1024px, 1-col ≤768px, 44px touch targets)
+  beverage accent stripes; deliberately static styling — no animations,
+  transitions or backdrop-filter, so the per-tick render stays cheap (game.js
+  only touches the DOM when a displayed value actually changes); the paused
+  state stripes the timeline and dims the board; responsive down to mobile
+  (2-col ≤1024px, 1-col ≤768px, 44px touch targets)
 
 The learning focus is still fundamentals, not tooling — new tools are added
 only when they help learning or solve a real project need.
@@ -151,11 +152,11 @@ game.js is organized into fixed sections: CONFIG → TITLES → STATE → els �
 HELPERS → RENDER → ACTIONS → TICK → GAME OVER → INIT. Every new feature
 lands in one of these sections.
 
-visual.js is a separate presentation-only layer: it watches text changes
-(MutationObserver) and re-triggers CSS animations (clock pulse, money
-gain/loss flash). It never reads or writes game state, and the smoke test
-loads only game.js — so visual.js polish is verified visually in the
-browser, not by the test.
+Styling is deliberately static: no animations, transitions or
+backdrop-filter, so the per-tick render is a cheap instant repaint. render()
+writes the DOM only when a displayed value changes (the setText helper), so
+unchanged stats don't dirty the layout. Visual polish is verified visually
+in the browser, not by the smoke test (which stubs the DOM).
 
 This pattern may evolve later.
 
@@ -169,5 +170,5 @@ When helping with this project:
 - do not introduce frameworks or libraries unless clearly necessary
 - if a new tool is suggested, explain what problem it solves
 - keep the beginner learning curve in mind
-- keep presentation (style.css, visual.js) separate from game logic (game.js):
-  visual polish must never touch state, render or tick code
+- keep presentation (style.css) separate from game logic (game.js): style
+  only consumes the classes and ids game.js exposes from state
