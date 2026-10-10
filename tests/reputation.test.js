@@ -9,7 +9,6 @@ restart();
 assert(buyChance() === 0.5, 'start: 50% buy chance (quality 50, $5, reputation 0)');
 
 state.recipeLevel = 5;
-state.servedLevel = 5;
 state.lemons = 10; // Empire Signature needs 3 lemons/cup — keep it servable
 state.price = 10;
 state.reputation = CONFIG.reputationMax;
@@ -23,9 +22,9 @@ state.price = 10;
 state.reputation = 900;
 assert(buyChance() < 1 && buyChance() > 0.9, 'best recipe but not max reputation: below 100%');
 state.reputation = CONFIG.reputationMax;
-state.servedLevel = 4; // Golden Citrus Punch (quality 80)
+state.recipeLevel = 4; // Golden Citrus Punch (quality 80)
 assert(buyChance() < 1 && buyChance() > 0.9, 'max reputation but not the best recipe: below 100%');
-state.servedLevel = 5;
+state.recipeLevel = 5;
 state.reputation = 0;
 assert(buyChance() < 1, 'no reputation: far from 100% even at the best recipe');
 

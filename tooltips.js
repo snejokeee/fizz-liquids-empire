@@ -15,9 +15,9 @@ function fmtSignedPct(value) {
   return `${sign}${Math.round(Math.abs(value) * 100)}%`;
 }
 
-// The buy chance formula (DESIGN.md §6), split into its four parts so the
+// The sell chance formula (DESIGN.md §6), split into its four parts so the
 // tooltip can show where the final percentage comes from.
-function buyChanceBreakdown() {
+function sellChanceBreakdown() {
   return {
     base: CONFIG.buyChanceBase,
     quality: effectiveRecipe().quality / CONFIG.buyChanceDenominator,
@@ -28,14 +28,14 @@ function buyChanceBreakdown() {
 }
 
 function tooltipReputationHTML() {
-  const buyEffect = state.reputation / CONFIG.reputationBonusDenominator;
-  const arrival = customerArrivalChance();
+  const sellEffect = state.reputation / CONFIG.reputationBonusDenominator;
+  const wordOfMouth = state.reputation * CONFIG.customerArrivalPerReputation;
   return `
     <div class="tooltip-header"><span class="tooltip-icon">●</span> Reputation</div>
     <div class="tooltip-stats">
       <div><span>Current</span><span>${Math.floor(state.reputation)} / ${CONFIG.reputationMax}</span></div>
-      <div><span>Buy chance bonus</span><span>+${fmtPct(buyEffect)}</span></div>
-      <div><span>Arrival chance/tick</span><span>${fmtPct(arrival)}</span></div>
+      <div><span>Sell chance bonus</span><span>+${fmtPct(sellEffect)}</span></div>
+      <div><span>Word of mouth</span><span>+${fmtPct(wordOfMouth)}/tick</span></div>
       <div><span>Per sale</span><span>+${state.price * CONFIG.reputationGainPerDollar} (price × ${CONFIG.reputationGainPerDollar})</span></div>
     </div>`;
 }
@@ -49,16 +49,16 @@ function tooltipQualityHTML() {
     <div class="tooltip-header"><span class="tooltip-icon">●</span> Quality</div>
     <div class="tooltip-stats">
       <div><span>Current</span><span>${recipe.quality}</span></div>
-      <div><span>Buy chance bonus</span><span>+${fmtPct(effect)}</span></div>
+      <div><span>Sell chance bonus</span><span>+${fmtPct(effect)}</span></div>
       <div><span>From recipe</span><span>${recipe.name}</span></div>
       <div><span>Next recipe adds</span><span>${nextGain}</span></div>
     </div>`;
 }
 
-function tooltipBuyChanceHTML() {
-  const b = buyChanceBreakdown();
+function tooltipSellChanceHTML() {
+  const b = sellChanceBreakdown();
   return `
-    <div class="tooltip-header"><span class="tooltip-icon">●</span> Buy chance</div>
+    <div class="tooltip-header"><span class="tooltip-icon">●</span> Sell chance</div>
     <div class="tooltip-stats">
       <div><span>Base</span><span>+${fmtPct(b.base)}</span></div>
       <div><span>Quality</span><span>${fmtSignedPct(b.quality)}</span></div>
@@ -69,7 +69,7 @@ function tooltipBuyChanceHTML() {
 }
 
 function tooltipLemonsHTML() {
-  const recipe = servedRecipe();
+  const recipe = currentRecipe();
   return `
     <div class="tooltip-header"><span class="tooltip-icon">●</span> Lemons</div>
     <div class="tooltip-stats">
@@ -91,19 +91,25 @@ function tooltipRecipeHTML() {
     <div class="tooltip-header"><span class="tooltip-icon">●</span> Recipe progression</div>
     <div class="tooltip-stats">
       ${rows}
-      <div><span>Each level adds</span><span>+10 quality / +5% buy chance</span></div>
+      <div><span>Each level adds</span><span>+10 quality / +5% sell chance</span></div>
     </div>`;
 }
 
-function tooltipServingHTML() {
-  const recipe = servedRecipe();
-  const fallback = isFallingBack() ? effectiveRecipe() : null;
+// Arrival chance breakdown (issue #11): base traffic plus the reputation
+// word-of-mouth bonus. The "per open day" line turns the per-tick chance into
+// the number the player actually feels (DESIGN.md §6).
+function tooltipArrivalHTML() {
+  const base = CONFIG.customerArrivalBase;
+  const wordOfMouth = state.reputation * CONFIG.customerArrivalPerReputation;
+  const total = customerArrivalChance();
+  const openTicksPerDay = ((CONFIG.closeHour - CONFIG.openHour) * 60) / CONFIG.clockMinutesPerTick;
   return `
-    <div class="tooltip-header"><span class="tooltip-icon">●</span> Serving</div>
+    <div class="tooltip-header"><span class="tooltip-icon">●</span> Arrival chance</div>
     <div class="tooltip-stats">
-      <div><span>Selected</span><span>${recipe.name}</span></div>
-      <div><span>Needs</span><span>${recipe.lemonsPerCup} lemon${recipe.lemonsPerCup === 1 ? '' : 's'} + $1 per cup</span></div>
-      <div><span>Fallback</span><span>${fallback ? `${fallback.name} (low on lemons)` : '—'}</span></div>
+      <div><span>Base</span><span>${fmtPct(base)}/tick</span></div>
+      <div><span>Word of mouth</span><span>+${fmtPct(wordOfMouth)}/tick</span></div>
+      <div><span>Total</span><span>${fmtPct(total)}/tick</span></div>
+      <div><span>Customers / open day</span><span>~${Math.round(total * openTicksPerDay)}</span></div>
     </div>`;
 }
 
@@ -111,10 +117,10 @@ function tooltipServingHTML() {
 const TOOLTIP_CONTENT = {
   'tooltip-reputation': tooltipReputationHTML,
   'tooltip-quality': tooltipQualityHTML,
-  'tooltip-buy-chance': tooltipBuyChanceHTML,
+  'tooltip-sell-chance': tooltipSellChanceHTML,
+  'tooltip-arrival': tooltipArrivalHTML,
   'tooltip-lemons': tooltipLemonsHTML,
   'tooltip-recipe': tooltipRecipeHTML,
-  'tooltip-serving': tooltipServingHTML,
 };
 
 function positionTooltipAt(tooltip, x, y) {

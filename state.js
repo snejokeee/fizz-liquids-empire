@@ -23,7 +23,6 @@ const state = {
   dayEarned: 0, // today's revenue, reset when the stall opens (issue #2)
   dayReputation: 0, // today's reputation gained, reset on opening (v0.0.6)
   recipeLevel: 1, // highest unlocked recipe tier (1..5); unlocks are night actions
-  servedLevel: 1, // recipe the stall serves (1..recipeLevel); chosen in the UI
   restockProgress: 0, // ticks worked toward the next auto-produced cup
   ticks: 0, // the simulation clock, incremented by tick()
   paused: false, // when true, tick() skips the simulation (issue #1)
@@ -41,16 +40,13 @@ function lemonBatchCost() {
   return CONFIG.lemonBatchSize * CONFIG.lemonPrice;
 }
 
-// The recipe the player selected in the serving dropdown.
-function servedRecipe() {
-  return CONFIG.recipes[state.servedLevel - 1];
-}
-
-// What the stall actually serves: the selected recipe, or — when the crate
-// lacks the lemons it needs — the highest unlocked recipe at or below it
-// that is still producible (fallback). The base recipe is the floor.
+// What the stall actually serves: the best unlocked recipe, or — when the
+// crate lacks the lemons it needs — the highest lower tier that is still
+// producible (fallback). The base recipe is the floor. The serving selector
+// was removed in issue #11; if per-recipe tradeoffs arrive, a player-chosen
+// level can become the starting point of this walk again.
 function effectiveRecipe() {
-  for (let level = state.servedLevel; level >= 1; level -= 1) {
+  for (let level = state.recipeLevel; level >= 1; level -= 1) {
     if (state.lemons >= CONFIG.recipes[level - 1].lemonsPerCup) {
       return CONFIG.recipes[level - 1];
     }
@@ -59,7 +55,7 @@ function effectiveRecipe() {
 }
 
 function isFallingBack() {
-  return effectiveRecipe() !== servedRecipe();
+  return effectiveRecipe() !== currentRecipe();
 }
 
 // One-line state of the auto-restock line in the Supplies panel.

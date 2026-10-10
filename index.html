@@ -71,10 +71,17 @@
           </span>
         </div>
         <div class="stat">
-          <span class="stat-label">Buy chance</span>
+          <span class="stat-label">Sell chance</span>
           <span class="stat-value-row">
-            <span class="stat-value" id="buy-chance">50%</span>
-            <span class="help-icon" data-tooltip="tooltip-buy-chance">?</span>
+            <span class="stat-value" id="sell-chance">50%</span>
+            <span class="help-icon" data-tooltip="tooltip-sell-chance">?</span>
+          </span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Arrival chance</span>
+          <span class="stat-value-row">
+            <span class="stat-value" id="arrival-chance">25%</span>
+            <span class="help-icon" data-tooltip="tooltip-arrival">?</span>
           </span>
         </div>
       </div>
@@ -88,13 +95,6 @@
         <div class="price-scale" aria-hidden="true"><span>$1</span><span>$10</span></div>
       </div>
 
-      <div class="serving-control">
-        <label for="recipe-select">Serving</label>
-        <div class="select-wrap">
-          <select id="recipe-select"></select>
-        </div>
-        <span class="help-icon" data-tooltip="tooltip-serving">?</span>
-      </div>
       <p class="note" id="serving-note"></p>
     </section>
 
@@ -160,8 +160,8 @@
   <!-- Tooltip overlays live at the root so the paused-state filter on <main>
        can never re-anchor their fixed positioning. game.js finds them by id. -->
   <div class="tooltip" id="tooltip-reputation" role="tooltip"></div>
-  <div class="tooltip" id="tooltip-buy-chance" role="tooltip"></div>
-  <div class="tooltip" id="tooltip-serving" role="tooltip"></div>
+  <div class="tooltip" id="tooltip-sell-chance" role="tooltip"></div>
+  <div class="tooltip" id="tooltip-arrival" role="tooltip"></div>
   <div class="tooltip" id="tooltip-quality" role="tooltip"></div>
   <div class="tooltip" id="tooltip-recipe" role="tooltip"></div>
   <div class="tooltip" id="tooltip-lemons" role="tooltip"></div>

@@ -25,7 +25,7 @@ making it better.
 - One drink, one stall, one city block of foot traffic.
 - Real-time simulation tick (1 tick = 1 second).
 - Customers arrive, decide to buy or walk away, pay you.
-- Player actions: set price, choose the serving recipe, unlock the next recipe, buy supplies at night.
+- Player actions: set price, unlock the next recipe, buy supplies at night.
 - Recipe progression: 5 tiers (water + lemon → …), each tier raises quality and
   with it the buy chance — the single upgrade path of the game.
 - Auto-restock: the stall produces cups from supplies by itself (costs money and
@@ -57,7 +57,6 @@ tick (1s)
             └─ leaves → nothing (logged)
 player actions (phase-gated by day/night)
   ├─ set price (any time)
-  ├─ choose the serving recipe (any time)
   └─ night only: buy supplies (lemons) and unlock the next recipe
 ```
 
@@ -71,14 +70,13 @@ state = {
   stock:         10,   // cups ready to sell — capped at stockCapacity
   lemons:        0,    // supply crate — bought at night, consumed by production
   price:         5,    // $ per cup (player can change 1..10)
-  reputation:     0,   // 0..1000, earned per sale (the sale price); buy chance + word of mouth
+  reputation:     0,   // 0..1000, earned per sale (the sale price × 0.5); sell chance + word of mouth
   cupsSold:       0,   // lifetime counter (milestones)
   totalEarned:    0,   // lifetime $ earned (milestones)
   dayCupsSold:    0,   // today's sales (daily recap at closing)
   dayEarned:      0,   // today's revenue (daily recap at closing)
   dayReputation:  0,   // today's reputation gained (daily recap at closing)
   recipeLevel:    1,   // highest unlocked recipe tier (1..5); unlocks are night actions
-  servedLevel:    1,   // recipe the stall serves (1..recipeLevel) — chosen in the UI
   restockProgress: 0,  // ticks worked toward the next auto-produced cup
   ticks:         0,   // the simulation clock (1 tick = 1 second)
   paused:        false, // true while the simulation is paused
@@ -145,8 +143,8 @@ the next morning (08:00). Numbers live in CONFIG: `openHour = 8`,
 `closeHour = 23`, `clockStart.hour = 6`, `clockMinutesPerTick = 10`.
 
 **Phase-gated actions** — the clock gates what the player can do: recipe
-unlocks and supply shopping only while the stall is closed (night); the
-serving choice, price and auto-restock work any time. Disabled buttons say
+unlocks and supply shopping only while the stall is closed (night); the price
+and auto-restock work any time. Disabled buttons say
 why in their label ("only while open" / "only while closed"), and clicking a
 gated action logs the reason.
 
@@ -166,7 +164,8 @@ be unlocked on the first night in normal play. The first recipe is a ~day 4–5
 goal, which makes growth feel earned and keeps the early game about learning
 to sell and restock.
 
-**Buy decision** — a customer buys with probability:
+**Buy decision** — a customer buys with probability (the UI shows this as
+*Sell chance*):
 
 ```
 buyChance = clamp(0.1, 1.0, 0.5 + (quality − price × 10) / 200 + reputation / 1800)
@@ -196,8 +195,9 @@ strategy needs ~17 in-game days — measured with tests/sim.js.
 **Sold out** — if stock is 0 when a customer wants to buy, they leave and the log
 shows "Sold out!". This teaches inventory pressure without extra systems.
 
-**Event log** — the UI shows the last few events ("A customer bought a cup for $5",
-"A customer walked away", "Sold out!") so the player can *see* the simulation.
+**Event log** — the UI shows the last few events ("A customer bought a cup of
+Fizzy Lemonade for $5", "A customer walked away", "Sold out!") so the player
+can *see* the simulation.
 
 ## 7. Recipes — The Upgrade Path
 
@@ -276,16 +276,16 @@ Layout (single page, matches the implemented layout):
 │                                [⏸ Pause] [⏭ Wait until morning]       │
 ├──────────────────────────────────┬────────────────────────────────────┤
 │ Stall — Fizzy Lemonade (cyan)   │ Recipe (lemon)                     │
-│  Stock 10/10 · Buy chance 50%   │  Current: Fizzy Lemonade           │
+│  Stock 10/10 · Sell chance 50%  │  Current: Fizzy Lemonade           │
 │  Price $5 ────●──── (slider)    │  (water + lemon)                   │
-│  Serving [Fizzy Lemonade ▾]     │  Quality 50                        │
+│  Arrival 25%/tick               │  Quality 50                        │
 │                                  │  [Unlock Iced Lemon Fizz — $250]  │
 ├──────────────────────────────────┼────────────────────────────────────┤
 │ Supplies (rose)                 │ Event Log (terminal strip,          │
 │  Lemons 0                       │ scrolls past ~200px)               │
 │  [Buy 10 lemons — $10]          │  > The stall opens for the day!    │
-│  AUTO-RESTOCK                   │  > A customer bought a cup for $5. │
-│  While stock is below 10 cups,  │                                    │
+│  AUTO-RESTOCK                   │  > A customer bought a cup of      │
+│  While stock is below 10 cups,  │    Fizzy Lemonade for $5.          │
 │  the stall brews 1 cup every 3  │                                    │
 │  ticks — $1 + 1 lemon (Fizzy    │                                    │
 │  Lemonade) per cup.             │                                    │
@@ -309,9 +309,10 @@ Details worth knowing:
   backdrop, 16px radius; no `backdrop-filter` blur — it would re-composite
   the page on every tick) with a per-panel beverage accent stripe on top.
   Stats are tiles: small muted uppercase labels over big mono numbers. The
-  stall shows Stock and Buy chance side by side — buy chance is driven by
-  the served recipe and the price, so it lives with the stall, not with the
-  global stats.
+  stall shows Stock, Sell chance and Arrival chance side by side — sell
+  chance is driven by the served recipe and the price, arrival chance by
+  reputation word of mouth, so both live with the stall, not with the global
+  stats.
 - **Supplies & auto-restock** — one panel: lemons + the night buy button,
   then an "Auto-restock" zone under a divider with a plain-language
   explainer (rebuilt from CONFIG every render, so it never goes stale) and
@@ -375,18 +376,19 @@ Follows AGENTS.md: **state holds the truth, render draws it, actions change it.*
 The game is playable in the browser. Implemented so far:
 
 - Core MVP — static page, state → render, tick loop (1/s), customers & sales,
-  player actions (price, serving choice, recipe unlocks), game over + restart
+  player actions (price, recipe unlocks), game over + restart
 - Day/night opening hours (08:00–23:00) — OPEN/CLOSED badge, daily recap at closing
-- Phase-gated actions — recipe unlocks + supplies at night; serving choice and
-  price any time
+- Phase-gated actions — recipe unlocks + supplies at night; price any time
 - Night supplies (lemons) — night shopping, auto-restock consumes money +
   lemons, game over accounts for the production chain (issue #5)
 - Auto-restock — the stall produces 1 cup per 3 ticks while stock < capacity
   (10) and supplies allow; costs $1 + lemons per cup, runs day/night and
   during fast-forward; future stall upgrades will speed it up and cut the cost
-- Serving selector + fallback — choose which unlocked recipe to serve; when
-  the crate lacks the lemons a recipe needs, the stall serves the best recipe
-  it can still make (tiered lemon costs: 1/1/2/2/3 per cup)
+- Serving + fallback — the stall always serves the best unlocked recipe; when
+  the crate lacks the lemons a recipe needs it falls back to the best recipe
+  it can still make (tiered lemon costs: 1/1/2/2/3 per cup). The serving
+  selector was removed in issue #11 as dead UI — reintroduce a choice when
+  recipes carry a real tradeoff
 - Game starts at 06:00 in the closed phase — pre-opening night shopping;
   recipe prices tuned so the first unlock is a multi-day goal (no unlocking
   on the first night in normal play)
@@ -423,6 +425,10 @@ The game is playable in the browser. Implemented so far:
   dedicated colored blocks (money green, reputation gold), buy chance back
   in the stall panel, auto-restock moved into the supplies panel with a
   CONFIG-driven explainer, 2×2 grid (stall|recipe / supplies|log)
+- Stall panel clarity (issue #11) — arrival chance as its own stall stat next
+  to "Sell chance" (renamed from "Buy chance"); the purchase log names the
+  recipe actually sold (fallback included); the redundant serving selector
+  removed — the stall always serves the best unlocked recipe
 
 Each feature landed as one small, self-contained step that left the game
 runnable in the browser.

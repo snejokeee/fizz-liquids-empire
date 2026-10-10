@@ -15,9 +15,9 @@ const els = {
   pause: document.getElementById('pause'),
   skipTime: document.getElementById('skip-time'),
   price: document.getElementById('price'),
-  buyChance: document.getElementById('buy-chance'),
+  sellChance: document.getElementById('sell-chance'),
+  arrivalChance: document.getElementById('arrival-chance'),
   priceSlider: document.getElementById('price-slider'),
-  recipeSelect: document.getElementById('recipe-select'),
   servingNote: document.getElementById('serving-note'),
   productionStatus: document.getElementById('production-status'),
   productionExplain: document.getElementById('production-explain'),
@@ -82,7 +82,12 @@ function render() {
   setText(els.skipTime, open ? 'Wait until closing' : 'Wait until morning');
   setText(els.price, state.price);
   els.priceSlider.value = state.price;
-  setText(els.buyChance, `${Math.round(buyChance() * 100)}%`);
+  // buyChance() is the customer's purchase probability (DESIGN.md §6); the
+  // Stall panel shows it as "Sell chance" from the stall's point of view.
+  setText(els.sellChance, `${Math.round(buyChance() * 100)}%`);
+  // Arrival chance (issue #11): traffic is a stall property — base plus the
+  // reputation word-of-mouth bonus (customerArrivalChance() in state.js).
+  setText(els.arrivalChance, `${Math.round(customerArrivalChance() * 100)}%`);
   const effective = effectiveRecipe();
   setText(els.quality, effective.quality);
   setText(els.drinkName, effective.name);
@@ -103,23 +108,13 @@ function render() {
     ? 'All recipes mastered'
     : `Unlock ${next.name} — $${recipeUnlockCost()}${open ? ' (only while closed)' : ''}`);
 
-  // Serving selector: one option per unlocked recipe, current served level
-  // selected. Options only change when a new recipe unlocks, so rebuild the
-  // list only then — render() runs every tick, and re-parsing identical HTML
-  // would churn the DOM for no reason.
-  const options = CONFIG.recipes
-    .slice(0, state.recipeLevel)
-    .map((recipe, i) => `<option value="${i + 1}">${recipe.name}</option>`)
-    .join('');
-  if (els.recipeSelect.innerHTML !== options) {
-    els.recipeSelect.innerHTML = options;
-  }
-  els.recipeSelect.value = String(state.servedLevel);
-  els.recipeSelect.disabled = state.gameOver;
+  // Serving (issue #11): the selector is gone — the stall always serves the
+  // best unlocked recipe and falls back down the ladder when the crate cannot
+  // supply it. The note tells the player what is actually in the cups.
   if (isFallingBack()) {
-    setText(els.servingNote, `Out of lemons for ${servedRecipe().name} — serving ${effective.name}.`);
+    setText(els.servingNote, `Out of lemons for ${currentRecipe().name} — serving ${effective.name}.`);
   } else {
-    setText(els.servingNote, `${servedRecipe().name} — ${servedRecipe().lemonsPerCup} lemon${servedRecipe().lemonsPerCup === 1 ? '' : 's'} + $1 per cup`);
+    setText(els.servingNote, `Serving ${effective.name} — ${effective.lemonsPerCup} lemon${effective.lemonsPerCup === 1 ? '' : 's'} + $1 per cup`);
   }
   setText(els.productionStatus, productionStatusText());
   setText(els.productionExplain, `While stock is below ${CONFIG.stockCapacity} cups, the stall brews 1 cup every ${CONFIG.productionTicksPerCup} ticks — $${CONFIG.productionCost} + ${effective.lemonsPerCup} lemon${effective.lemonsPerCup === 1 ? '' : 's'} (${effective.name}) per cup.`);
@@ -130,12 +125,6 @@ function render() {
 // ---------------------------------------------------------------------------
 function setPrice(price) {
   state.price = price;
-  render();
-}
-
-// Which recipe the stall serves, chosen in the dropdown (1..recipeLevel).
-function setServedRecipe(level) {
-  state.servedLevel = Math.max(1, Math.min(state.recipeLevel, level));
   render();
 }
 
@@ -175,8 +164,7 @@ function upgradeRecipe() {
     return;
   }
   state.money -= next.cost;
-  state.recipeLevel += 1;
-  state.servedLevel = state.recipeLevel; // serve the new best recipe by default
+  state.recipeLevel += 1; // the new best recipe is what the stall serves (issue #11)
   addLog(`Recipe unlocked: ${currentRecipe().name}! Quality is now ${currentRecipe().quality}.`);
   render();
 }
@@ -227,7 +215,6 @@ function restart() {
     dayEarned: 0,
     dayReputation: 0,
     recipeLevel: 1,
-    servedLevel: 1,
     restockProgress: 0,
     ticks: 0,
     paused: false,
@@ -319,7 +306,10 @@ function customerVisits() {
     state.totalEarned += state.price;
     state.dayCupsSold += 1;
     state.dayEarned += state.price;
-    addLog(`A customer bought a cup for $${state.price}.`);
+    // Name the recipe actually in the cup — effectiveRecipe() follows the
+    // production fallback, so a low-lemon day logs what the customer really
+    // got (issue #11).
+    addLog(`A customer bought a cup of ${effectiveRecipe().name} for $${state.price}.`);
   } else {
     addLog('A customer looked at the price and walked away.');
   }
@@ -386,7 +376,6 @@ function wireTooltips() {
 
 function init() {
   els.priceSlider.addEventListener('input', (event) => setPrice(Number(event.target.value)));
-  els.recipeSelect.addEventListener('change', (event) => setServedRecipe(Number(event.target.value)));
   els.buyLemons.addEventListener('click', buyLemons);
   els.upgradeRecipe.addEventListener('click', upgradeRecipe);
   els.pause.addEventListener('click', togglePause);

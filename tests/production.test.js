@@ -46,8 +46,7 @@ assert(state.stock === 0 && state.money === 100, 'no production and no spending 
 
 // fallback: a recipe whose lemons the crate lacks falls back to a cheaper one
 restart();
-state.recipeLevel = 3;
-state.servedLevel = 3; // Citrus Sparkle needs 2 lemons/cup
+state.recipeLevel = 3; // Citrus Sparkle needs 2 lemons/cup — the crate below has 1
 state.lemons = 1;
 state.money = 100;
 state.stock = 0;

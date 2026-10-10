@@ -45,7 +45,7 @@ assert(state.dayCupsSold === 1, 'day counters reset on opening (1 sale at 08:00)
 
 restart();
 assert(state.ticks === 0 && !isOpen() && state.dayCupsSold === 0 && state.dayEarned === 0 && state.lemons === 0
-  && state.recipeLevel === 1 && state.servedLevel === 1 && effectiveRecipe().quality === 50,
+  && state.recipeLevel === 1 && effectiveRecipe().quality === 50,
   'restart resets clock to 06:00 closed with fresh day counters, an empty supply crate and the starter recipe');
 
 // ---- fast-forward to the next day boundary (issue #6) ----

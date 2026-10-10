@@ -9,8 +9,8 @@
 restart(); // 06:00, closed: two hours to shop before the first opening
 assert(!isOpen(), 'game starts in the closed phase');
 assert(els.buyLemons.disabled === false, 'buy lemons enabled during the pre-opening night');
-assert(els.recipeSelect.value === '1' && els.productionStatus.textContent === 'Stock full',
-  'serving the starter recipe, stall full at start');
+assert(els.productionStatus.textContent === 'Stock full' && effectiveRecipe().name === 'Fizzy Lemonade',
+  'the stall serves the starter recipe, stall full at start');
 assert(els.upgradeRecipe.disabled === true,
   'recipe unlock disabled at start: starter money cannot afford it (from zero to hero)');
 assert(els.upgradeRecipe.textContent.includes('$250'), 'recipe unlock shows the next tier price');
@@ -41,7 +41,7 @@ assert(logTexts()[0] === 'Not enough money for Iced Lemon Fizz ($250).', 'first-
 state.lemons = 10; // so the new recipe is actually servable (no fallback)
 state.money = 1000;
 upgradeRecipe();
-assert(state.recipeLevel === 2 && state.servedLevel === 2 && effectiveRecipe().quality === 60 && state.money === 750,
+assert(state.recipeLevel === 2 && effectiveRecipe().quality === 60 && state.money === 750,
   'recipe unlock works when affordable and is served by default');
 assert(logTexts()[0] === 'Recipe unlocked: Iced Lemon Fizz! Quality is now 60.', 'recipe unlock is logged');
 assert(els.drinkName.textContent === 'Iced Lemon Fizz' && els.recipeIngredients.textContent.includes('ice'),
@@ -57,7 +57,6 @@ assert(logTexts()[0] === 'Recipe upgrades are only available while the stall is 
 // the ladder ends: at the top tier there is nothing left to unlock
 state.money = 100000;
 state.recipeLevel = 5;
-state.servedLevel = 5;
 render();
 assert(els.upgradeRecipe.disabled === true && els.upgradeRecipe.textContent === 'All recipes mastered',
   'recipe panel shows the mastered state at the top tier');
@@ -65,14 +64,17 @@ upgradeRecipe();
 assert(state.recipeLevel === 5 && state.money === 100000, 'no unlock past the final recipe');
 assert(logTexts()[0] === 'You already mastered every recipe.', 'mastered log message');
 
-// ---- serving selector: which unlocked recipe the stall sells ----
+// ---- serving (issue #11): the selector is gone; the stall always serves the
+// best unlocked recipe, and the purchase log names what was actually sold ----
 restart();
-state.recipeLevel = 2;
+state.recipeLevel = 2; // Iced Lemon Fizz unlocked
 state.lemons = 10;
 render();
-assert(els.recipeSelect.value === '1' && buyChance() === 0.5, 'serving the starter recipe by default');
-setServedRecipe(2);
-assert(state.servedLevel === 2 && els.recipeSelect.value === '2' && buyChance() === 0.55,
-  'switching the serving recipe changes quality and buy chance');
-setServedRecipe(9);
-assert(state.servedLevel === 2, 'serving level is clamped to the unlocked recipes');
+assert(effectiveRecipe().name === 'Iced Lemon Fizz' && buyChance() === 0.55,
+  'the stall serves the best unlocked recipe (quality 60 -> 55% sell chance)');
+assert(els.servingNote.textContent === 'Serving Iced Lemon Fizz — 1 lemon + $1 per cup',
+  'the serving note describes what is in the cups');
+state.stock = 10;
+customerVisits();
+assert(logTexts()[0] === 'A customer bought a cup of Iced Lemon Fizz for $5.',
+  'the purchase log names the recipe sold');

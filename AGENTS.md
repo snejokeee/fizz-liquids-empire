@@ -61,7 +61,7 @@ What exists:
   seeded randomness and prints strategy/pacing tables; the measuring stick
   for CONFIG changes (issue #10)
 - real-time simulation (1 tick/s), customers, sales, event log
-- player actions: price slider, serving recipe choice, recipe unlock (night)
+- player actions: price slider, recipe unlock (night)
 - day/night cycle: opens 08:00–23:00, game starts at 06:00 (pre-opening night shopping), OPEN/CLOSED badge, daily recap (incl. the day's reputation gain), fast-forward to the next day boundary
 - night supplies (lemons): buy lemons while closed, auto-restock consumes money + lemons (production chain seed)
 - auto-restock: the stall produces cups by itself while stock is below capacity
@@ -74,7 +74,8 @@ What exists:
   runs low
 - reputation rework (v0.0.6): reputation is 0–1000, grows by the sale price
   × 0.5 since the issue #10 pacing retune, and has two jobs — it raises the
-  buy chance AND draws more customers (word of mouth: arrival = 0.25/s + 0.00005 per reputation); buy chance is capped
+  buy chance (shown as "Sell chance" in the UI) AND draws more customers
+  (word of mouth: arrival = 0.25/s + 0.00005 per reputation); buy chance is capped
   at 100% and reaches it only at max reputation + best recipe (at any price),
   so "sell my lemonade at $10 with 100% certainty" is the endgame fantasy
 - attractiveness removed (v0.0.6): it was a dead constant; its traffic role
@@ -86,6 +87,10 @@ What exists:
 - reputation pacing retune (issue #10): gain scaled to ×0.5
   (CONFIG.reputationGainPerDollar) after the simulation harness showed the
   ~day-9 cap; a fast strategy now caps around day 17
+- stall panel clarity (issue #11): arrival chance shows as its own stall stat
+  next to "Sell chance" (renamed from "Buy chance"); the purchase log names
+  the recipe actually sold (fallback included); the redundant serving
+  selector was removed — the stall always serves the best unlocked recipe
 - company-title milestones, game over + restart
 - Modern Beverage Tycoon UI (v0.0.5): dark glass dashboard themed with CSS
   custom properties (:root design tokens), sticky header with colored status
