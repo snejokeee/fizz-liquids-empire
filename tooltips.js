@@ -33,10 +33,10 @@ function tooltipReputationHTML() {
   return `
     <div class="tooltip-header"><span class="tooltip-icon">●</span> Reputation</div>
     <div class="tooltip-stats">
-      <div><span>Current</span><span>${state.reputation} / ${CONFIG.reputationMax}</span></div>
+      <div><span>Current</span><span>${Math.floor(state.reputation)} / ${CONFIG.reputationMax}</span></div>
       <div><span>Buy chance bonus</span><span>+${fmtPct(buyEffect)}</span></div>
       <div><span>Arrival chance/tick</span><span>${fmtPct(arrival)}</span></div>
-      <div><span>Per sale</span><span>+${state.price} (sale price)</span></div>
+      <div><span>Per sale</span><span>+${state.price * CONFIG.reputationGainPerDollar} (price × ${CONFIG.reputationGainPerDollar})</span></div>
     </div>`;
 }
 

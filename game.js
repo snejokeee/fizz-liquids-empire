@@ -62,7 +62,7 @@ function render() {
   setText(els.money, state.money);
   setText(els.stock, `${state.stock} / ${CONFIG.stockCapacity}`);
   setText(els.lemons, state.lemons);
-  setText(els.reputation, `${state.reputation} / ${CONFIG.reputationMax}`);
+  setText(els.reputation, `${Math.floor(state.reputation)} / ${CONFIG.reputationMax}`); // reputation accrues in fractions (issue #10 gain) — floor for display
   setText(els.clock, formatClock());
   const open = isOpen();
   // The badge reflects the simulation phase: OPEN/CLOSED from the clock, or
@@ -255,7 +255,7 @@ function handleDayBoundary(wasOpen) {
   } else if (!isOpen() && wasOpen) {
     // Closing time: recap the day that just ended.
     addLog('Closing time — the stall is now closed.');
-    addLog(`Today: ${state.dayCupsSold} cups sold, $${state.dayEarned} earned. Reputation +${state.dayReputation} → ${state.reputation}.`);
+    addLog(`Today: ${state.dayCupsSold} cups sold, $${state.dayEarned} earned. Reputation +${Math.floor(state.dayReputation)} → ${Math.floor(state.reputation)}.`);
   }
 }
 
@@ -309,9 +309,10 @@ function customerVisits() {
   if (Math.random() < buyChance()) {
     state.money += state.price;
     state.stock -= 1;
-    // Reputation grows by the sale price (v0.0.6): pricier sales build the
+    // Reputation grows by the sale price, scaled by
+    // CONFIG.reputationGainPerDollar (issue #10): pricier sales build the
     // brand more. Feeds buy chance and word-of-mouth traffic.
-    const repGain = state.price;
+    const repGain = state.price * CONFIG.reputationGainPerDollar;
     state.reputation = Math.min(state.reputation + repGain, CONFIG.reputationMax);
     state.dayReputation += repGain;
     state.cupsSold += 1;

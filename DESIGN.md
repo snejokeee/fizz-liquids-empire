@@ -106,7 +106,7 @@ the cups.
 | Clock speed | 10 in-game minutes per tick (1 tick = 1 real second) |
 | Recipe unlocks | Iced Lemon Fizz $250 · Citrus Sparkle $600 · Golden Citrus Punch $1,300 · Empire Signature $2,500 |
 | Customer arrivals | base 0.25/s + 0.00005 per reputation (word of mouth) → 0.25–0.3/s |
-| Reputation | 0–1000, grows by the sale price per sale; raises buy chance + arrival chance |
+| Reputation | 0–1000, grows by half the sale price per sale (issue #10 retune); raises buy chance + arrival chance |
 
 Expected pacing at start: the game opens at 06:00 in the closed phase, so the
 first act is night shopping; the first recipe unlock ($250) is a multi-day
@@ -189,7 +189,9 @@ chance only at max reputation + best recipe, at any price* — "sell my
 lemonade at $10 with 100% certainty" is the endgame goal. Below that combo
 the chance stays under 100%: best recipe but 900 reputation → 95%, max
 reputation but recipe 4 → ~96%. Reputation also feeds customer arrivals
-(§6 Arrival), so maxing it is doubly rewarding.
+(§6 Arrival), so maxing it is doubly rewarding. Reaching the cap is a
+long-term goal, not a sprint (issue #10): the gain factor is 0.5, so a fast
+strategy needs ~17 in-game days — measured with tests/sim.js.
 
 **Sold out** — if stock is 0 when a customer wants to buy, they leave and the log
 shows "Sold out!". This teaches inventory pressure without extra systems.
@@ -223,9 +225,10 @@ each a milestone with its own ingredient list and quality:
 
 Growth in the MVP is numeric but visible:
 
-- **Reputation** (0–1000, v0.0.6) grows by the sale price with each sale and
-  has two jobs: it nudges buy chance up and it draws more customers (word of
-  mouth, §6). The daily recap reports the day's gain ("Reputation +X → Y").
+- **Reputation** (0–1000, v0.0.6; gain halved to ×0.5 by the issue #10 pacing
+  retune) grows by the sale price with each sale and has two jobs: it nudges
+  buy chance up and it draws more customers (word of mouth, §6). The daily
+  recap reports the day's gain ("Reputation +X → Y").
 - **Lifetime stats** (`cupsSold`, `totalEarned`) feed **company titles** —
   pure flavor feedback so progress feels like an "empire" forming:
 
@@ -358,8 +361,11 @@ deliberately static (no animations, transitions or backdrop-filter), and
 render() writes the DOM only when a displayed value actually changes (the
 setText helper) — keeping the per-tick repaint cheap. The smoke test runner
 (tests/smoke.js) boots the game files in a stubbed-DOM vm and runs the
-per-feature test suites (tests/*.test.js — clock, supplies, production),
-one fresh game per file; visuals are verified by playing in the browser.
+per-feature test suites (tests/*.test.js — clock, supplies, production,
+reputation), one fresh game per file; the shared boot lives in
+tests/game-host.js. tests/sim.js replays whole games with seeded randomness
+and prints strategy/pacing tables (issue #10) — the measuring stick for
+CONFIG balance changes. Visuals are verified by playing in the browser.
 
 Follows AGENTS.md: **state holds the truth, render draws it, actions change it.**
 `CONFIG` (config.js) holds every tunable number from sections 5–6.
@@ -398,6 +404,10 @@ The game is playable in the browser. Implemented so far:
   GitHub issue; header keeps the money + reputation chips only
 - Pacing pass (v0.0.6) — arrival base raised 0.1 → 0.25/s, first recipe
   unlock lands around day 4–5 instead of day ~9
+- Reputation pacing retune (issue #10) — gain scaled to ×0.5
+  (CONFIG.reputationGainPerDollar): the 1000 cap lands around in-game day 17
+  for a fast strategy instead of day ~9; measured with the new simulation
+  harness (tests/sim.js, sharing tests/game-host.js with the smoke runner)
 - Smoke tests — `tests/smoke.js` runner + per-feature suites
   (`tests/clock.test.js`, `tests/supplies.test.js`, `tests/production.test.js`,
   `tests/reputation.test.js`)
@@ -423,7 +433,8 @@ runnable in the browser.
 - Change one number at a time, then playtest.
 - Target pacing: first recipe unlock reachable around day 4–5 (~5–7 minutes
   of real-time play; fast-forward is a pure time skip, so watching is how
-  money is made); game over should be
+  money is made); max reputation around in-game day 17 for a fast strategy
+  (issue #10, measured with tests/sim.js); game over should be
   possible only through neglect (raising price to $10 forever, never restocking).
 
 ## 14. Stretch Goals (later, not MVP)

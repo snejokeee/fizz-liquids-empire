@@ -35,15 +35,15 @@ assert(customerArrivalChance() === 0.25, 'arrival chance starts at 0.25/s');
 state.reputation = CONFIG.reputationMax;
 assert(customerArrivalChance() === 0.3, 'max reputation raises arrival chance to 0.3/s');
 
-// ---- reputation grows by the sale price, capped at 1000 ----
+// ---- reputation grows by the sale price × 0.5 (issue #10), capped at 1000 ----
 restart();
 state.stock = 10;
 state.price = 5;
 customerVisits();
-assert(state.reputation === 5 && state.dayReputation === 5, 'a $5 sale adds 5 reputation');
+assert(state.reputation === 2.5 && state.dayReputation === 2.5, 'a $5 sale adds 2.5 reputation (price × 0.5)');
 state.price = 10;
 customerVisits();
-assert(state.reputation === 15, 'a $10 sale adds 10 reputation');
+assert(state.reputation === 7.5, 'a $10 sale adds 5 reputation (price × 0.5)');
 state.reputation = 995;
 customerVisits();
 assert(state.reputation === CONFIG.reputationMax, 'reputation caps at 1000');
@@ -55,11 +55,11 @@ state.dayEarned = 42;
 state.stock = 100000; // no sold-outs in the deterministic day
 for (let i = 0; i < 11; i += 1) tick(); // 06:00 → 07:50: still closed
 tick(); // 08:00: opening resets the day counters, then the first sale starts them fresh
-assert(state.dayReputation === 5 && state.dayEarned === 5,
+assert(state.dayReputation === 2.5 && state.dayEarned === 5,
   'opening resets the day reputation, the first sale starts it fresh');
 for (let i = 0; i < 89; i += 1) tick(); // 08:10 → 22:50: the rest of the open day
 tick(); // 23:00: closes and recaps
-assert(state.dayCupsSold === 90 && state.dayReputation === 450,
-  'a full deterministic day gains 450 reputation (90 sales × $5)');
-assert(logTexts()[0] === 'Today: 90 cups sold, $450 earned. Reputation +450 → 450.',
+assert(state.dayCupsSold === 90 && state.dayReputation === 225,
+  'a full deterministic day gains 225 reputation (90 sales × $5 × 0.5)');
+assert(logTexts()[0] === 'Today: 90 cups sold, $450 earned. Reputation +225 → 225.',
   'closing recap reports the reputation gain');

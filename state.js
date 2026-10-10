@@ -16,7 +16,7 @@ const state = {
   stock: CONFIG.starterStock,
   lemons: 0, // supply crate: bought at night, consumed by production (issue #5)
   price: CONFIG.defaultPrice,
-  reputation: 0, // 0..1000: grows by sale price; buy chance + word-of-mouth traffic (v0.0.6)
+  reputation: 0, // 0..1000: grows by sale price × CONFIG.reputationGainPerDollar (issue #10); buy chance + word-of-mouth traffic
   cupsSold: 0,
   totalEarned: 0,
   dayCupsSold: 0, // today's sales, reset when the stall opens (issue #2)

@@ -55,7 +55,11 @@ What exists:
 - six game files: `index.html`, `style.css`, `config.js`, `state.js`,
   `tooltips.js`, `game.js` — plain `<script>` tags in dependency order
 - smoke tests for the game logic: `tests/smoke.js` (runner) + per-feature
-  `tests/*.test.js` files — run with `node tests/smoke.js`
+  `tests/*.test.js` files — run with `node tests/smoke.js` (shared fake-DOM
+  boot in `tests/game-host.js`)
+- balance simulation harness: `tests/sim.js` — replays whole games with
+  seeded randomness and prints strategy/pacing tables; the measuring stick
+  for CONFIG changes (issue #10)
 - real-time simulation (1 tick/s), customers, sales, event log
 - player actions: price slider, serving recipe choice, recipe unlock (night)
 - day/night cycle: opens 08:00–23:00, game starts at 06:00 (pre-opening night shopping), OPEN/CLOSED badge, daily recap (incl. the day's reputation gain), fast-forward to the next day boundary
@@ -68,9 +72,9 @@ What exists:
   a multi-day goal ("from zero to hero"); higher tiers cost more lemons per cup,
   and the stall falls back to the best recipe it can still make when the crate
   runs low
-- reputation rework (v0.0.6): reputation is 0–1000, grows by the sale price,
-  and has two jobs — it raises the buy chance AND draws more customers (word
-  of mouth: arrival = 0.25/s + 0.00005 per reputation); buy chance is capped
+- reputation rework (v0.0.6): reputation is 0–1000, grows by the sale price
+  × 0.5 since the issue #10 pacing retune, and has two jobs — it raises the
+  buy chance AND draws more customers (word of mouth: arrival = 0.25/s + 0.00005 per reputation); buy chance is capped
   at 100% and reaches it only at max reputation + best recipe (at any price),
   so "sell my lemonade at $10 with 100% certainty" is the endgame fantasy
 - attractiveness removed (v0.0.6): it was a dead constant; its traffic role
@@ -79,6 +83,9 @@ What exists:
 - pacing pass (v0.0.6): arrival base raised 0.1 → 0.25/s (~2× more customers),
   so the first recipe unlock lands around day 4–5 instead of day ~9; fast-
   forward stays a pure time skip (no income during the jump)
+- reputation pacing retune (issue #10): gain scaled to ×0.5
+  (CONFIG.reputationGainPerDollar) after the simulation harness showed the
+  ~day-9 cap; a fast strategy now caps around day 17
 - company-title milestones, game over + restart
 - Modern Beverage Tycoon UI (v0.0.5): dark glass dashboard themed with CSS
   custom properties (:root design tokens), sticky header with colored status

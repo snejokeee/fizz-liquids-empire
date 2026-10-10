@@ -59,6 +59,12 @@ const CONFIG = {
   // sales build the brand more. Drives buy chance and word-of-mouth traffic.
   reputationMax: 1000,
 
+  // How much reputation one sales dollar builds (issue #10). 1 = the v0.0.6
+  // behavior (gain = sale price); the retune halves it so the 1000 cap is a
+  // long-term goal: ~17 in-game days for a fast strategy instead of ~9.
+  // Measured with tests/sim.js.
+  reputationGainPerDollar: 0.5,
+
   // Recipe progression (the upgrade path): 5 tiers, each with a name, its
   // ingredient list (flavor for now — lemons stay the only purchasable supply),
   // the drink quality it sets, and its unlock cost. Quality drives buy chance
