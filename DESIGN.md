@@ -135,11 +135,14 @@ gate, zero traffic at night). The header shows an OPEN/CLOSED badge (PAUSED
 while paused) with a sun/moon icon that swaps instantly on the phase change —
 CLOSED means night hours only — boundary events are logged ("The stall opens for the day!" / "Closing time — the
 stall is now closed.") and at closing the day is recapped ("Today: X cups sold,
-$Y earned."). The clock starts at **06:00** — two hours before opening — so a new
+$Y earned.") in the log and in a day-recap toast that pops at closing (issue
+#12) — "Got it" or the next opening dismisses it, so an idle player still
+notices the flip. An opt-in "Pause at closing" checkbox freezes the simulation
+at 23:00 for AFK play. The clock starts at **06:00** — two hours before opening — so a new
 game begins in the closed phase with time to buy supplies before the first
 customer arrives. A fast-forward button in the header skips dead time in one
 click: while open it waits until closing (23:00), while closed it waits until
-the next morning (08:00). Numbers live in CONFIG: `openHour = 8`,
+the next opening (08:00). Numbers live in CONFIG: `openHour = 8`,
 `closeHour = 23`, `clockStart.hour = 6`, `clockMinutesPerTick = 10`.
 
 **Phase-gated actions** — the clock gates what the player can do: recipe
@@ -273,7 +276,7 @@ Layout (single page, matches the implemented layout):
 │  [logo] Fizz Liquids Empire    [MONEY $40] [REPUTATION 0 / 1000]       │
 │         Sidewalk Stall                                                │
 │                                [●CLOSED] [🌙] 06:00 01/08/1990         │
-│                                [⏸ Pause] [⏭ Wait until morning]       │
+│                                [⏸ Pause] [⏭ Wait until opening]       │
 ├──────────────────────────────────┬────────────────────────────────────┤
 │ Stall — Fizzy Lemonade (cyan)   │ Recipe (lemon)                     │
 │  Stock 10/10 · Sell chance 50%  │  Current: Fizzy Lemonade           │
@@ -304,7 +307,12 @@ Details worth knowing:
   "grows all game" statuses read as a family next to the time controls.
   The timeline pill holds the OPEN/CLOSED/PAUSED badge, a sun/moon icon
   that swaps instantly with the day/night phase, the digital clock (mono,
-  glowing), and the Pause/Play + fast-forward pills.
+  glowing), the Pause/Play + fast-forward pills, and the opt-in "Pause at
+  closing" checkbox (with a help tooltip).
+- **Day boundary** — closing pops a day-recap toast in the bottom-right corner
+  with the day's numbers, so the flip is visible even when the player is idle;
+  "Got it" or the next opening dismisses it. The fast-forward button reads
+  "Wait until opening" while closed and "Wait until closing" while open.
 - **Panels** — dark glass cards (translucent surface over a fixed gradient
   backdrop, 16px radius; no `backdrop-filter` blur — it would re-composite
   the page on every tick) with a per-panel beverage accent stripe on top.
@@ -429,6 +437,10 @@ The game is playable in the browser. Implemented so far:
   to "Sell chance" (renamed from "Buy chance"); the purchase log names the
   recipe actually sold (fallback included); the redundant serving selector
   removed — the stall always serves the best unlocked recipe
+- Day-boundary comfort (issue #12) — closing pops a day-recap toast (dismissed
+  by "Got it" or the next opening); an opt-in "Pause at closing" checkbox
+  freezes the simulation at 23:00 for AFK play; the fast-forward label reads
+  "Wait until opening" while closed
 
 Each feature landed as one small, self-contained step that left the game
 runnable in the browser.

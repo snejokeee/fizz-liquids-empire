@@ -51,7 +51,7 @@ assert(state.ticks === 0 && !isOpen() && state.dayCupsSold === 0 && state.dayEar
 // ---- fast-forward to the next day boundary (issue #6) ----
 restart(); // 06:00, closed
 assert(!els.skipTime.classList.contains('hidden'), 'skip button shown while closed');
-assert(els.skipTime.textContent === 'Wait until morning', 'label says "Wait until morning" while closed');
+assert(els.skipTime.textContent === 'Wait until opening', 'label says "Wait until opening" while closed');
 const t0 = state.ticks;
 skipToBoundary();
 assert(state.ticks - t0 === 12, 'pre-opening skip jumps 06:00 → 08:00 (12 ticks at 10 min/tick)');
@@ -74,7 +74,7 @@ assert(state.ticks - t1 === 90, 'day skip jumps 08:00 → 23:00 (90 ticks at 10 
 assert(!isOpen(), 'stall closed after day skip');
 assert(logTexts()[1] === 'Closing time — the stall is now closed.', 'closing log after day skip');
 assert(/^Today: \d+ cups sold, \$\d+ earned\. Reputation \+\d+ → \d+\.$/.test(logTexts()[0]), 'daily recap after day skip');
-assert(els.skipTime.textContent === 'Wait until morning', 'label says "Wait until morning" while closed');
+assert(els.skipTime.textContent === 'Wait until opening', 'label says "Wait until opening" while closed');
 const t2 = state.ticks;
 skipToBoundary();
 assert(state.ticks - t2 === 54, 'night skip jumps 23:00 → 08:00 (54 ticks at 10 min/tick)');
@@ -106,3 +106,36 @@ assert(els.skipTime.classList.contains('hidden'), 'skip button hidden on game ov
 const t4 = state.ticks;
 skipToBoundary();
 assert(state.ticks === t4, 'skip does nothing on game over');
+
+// ---- daily recap toast + pause at closing (issue #12) ----
+restart();
+assert(els.recapToast.classList.contains('hidden'), 'no recap toast before the first closing');
+assert(els.pauseAtClosing.checked === false, 'pause at closing starts off');
+assert(TOOLTIP_CONTENT['tooltip-pause-at-closing']().includes('Pause at closing'),
+  'the pause-at-closing help tooltip is registered');
+
+skipToBoundary(); // 06:00 → 08:00: opens
+skipToBoundary(); // 08:00 → 23:00: closes
+assert(!els.recapToast.classList.contains('hidden'), 'closing shows the recap toast');
+assert(/^Today: \d+ cups sold, \$\d+ earned\. Reputation \+\d+ → \d+\.$/.test(els.recapText.textContent),
+  'the recap toast shows the day numbers: ' + els.recapText.textContent);
+assert(state.paused === false, 'the default does not pause at closing');
+
+skipToBoundary(); // 23:00 → 08:00: the next opening clears the toast
+assert(els.recapToast.classList.contains('hidden'), 'the next opening clears the recap toast');
+
+restart();
+state.pauseAtClosing = true;
+render();
+assert(els.pauseAtClosing.checked === true, 'the checkbox reflects the setting');
+
+skipToBoundary(); // opens
+skipToBoundary(); // closes → pauses
+assert(state.paused === true, 'pause at closing freezes the simulation at 23:00');
+assert(els.statusBadge.textContent === 'PAUSED', 'badge shows PAUSED (not CLOSED) after pausing at closing');
+assert(logTexts()[0] === 'Paused at closing — press Play to continue.', 'the log explains the pause');
+
+dismissRecap();
+assert(els.recapToast.classList.contains('hidden') && state.lastRecap === '', 'Got it dismisses the recap toast');
+togglePause();
+assert(state.paused === false && els.statusBadge.textContent === 'CLOSED', 'Play resumes the night');

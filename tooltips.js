@@ -113,6 +113,18 @@ function tooltipArrivalHTML() {
     </div>`;
 }
 
+// "Pause at closing" help (issue #12): what the opt-in AFK guard does.
+function tooltipPauseAtClosingHTML() {
+  return `
+    <div class="tooltip-header"><span class="tooltip-icon">●</span> Pause at closing</div>
+    <div class="tooltip-stats">
+      <div><span>When on</span><span>time stops at 23:00</span></div>
+      <div><span>When off</span><span>the night keeps running</span></div>
+      <div><span>To resume</span><span>press Play</span></div>
+      <div><span>Good for</span><span>leaving the tab open</span></div>
+    </div>`;
+}
+
 // Which content builder each tooltip element (by id) uses.
 const TOOLTIP_CONTENT = {
   'tooltip-reputation': tooltipReputationHTML,
@@ -121,6 +133,7 @@ const TOOLTIP_CONTENT = {
   'tooltip-arrival': tooltipArrivalHTML,
   'tooltip-lemons': tooltipLemonsHTML,
   'tooltip-recipe': tooltipRecipeHTML,
+  'tooltip-pause-at-closing': tooltipPauseAtClosingHTML,
 };
 
 function positionTooltipAt(tooltip, x, y) {

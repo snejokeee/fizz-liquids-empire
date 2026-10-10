@@ -48,7 +48,12 @@
       <span class="clock" id="clock">06:00 01/08/1990</span>
       <div class="timeline-actions">
         <button class="btn btn-pause" id="pause">Pause</button>
-        <button class="btn btn-skip" id="skip-time">Wait until morning</button>
+        <button class="btn btn-skip" id="skip-time">Wait until opening</button>
+        <label class="toggle">
+          <input type="checkbox" id="pause-at-closing">
+          Pause at closing
+        </label>
+        <span class="help-icon" data-tooltip="tooltip-pause-at-closing">?</span>
       </div>
     </div>
   </header>
@@ -148,6 +153,15 @@
     </section>
   </main>
 
+  <!-- Day recap toast (issue #12): appears at closing so the day boundary is
+       visible even when the player is idle; dismissed by the player or the
+       next opening. -->
+  <div class="recap-toast hidden" id="recap-toast">
+    <span class="recap-title">Day closed</span>
+    <span class="recap-text" id="recap-text"></span>
+    <button class="btn" id="dismiss-recap">Got it</button>
+  </div>
+
   <div id="game-over" class="overlay hidden">
     <div class="overlay-box">
       <h2>Game Over</h2>
@@ -165,6 +179,7 @@
   <div class="tooltip" id="tooltip-quality" role="tooltip"></div>
   <div class="tooltip" id="tooltip-recipe" role="tooltip"></div>
   <div class="tooltip" id="tooltip-lemons" role="tooltip"></div>
+  <div class="tooltip" id="tooltip-pause-at-closing" role="tooltip"></div>
 
   <!-- Plain script tags in dependency order: each file shares the global
        scope, so config.js must load first and game.js last. -->

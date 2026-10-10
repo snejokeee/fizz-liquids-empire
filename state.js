@@ -26,6 +26,8 @@ const state = {
   restockProgress: 0, // ticks worked toward the next auto-produced cup
   ticks: 0, // the simulation clock, incremented by tick()
   paused: false, // when true, tick() skips the simulation (issue #1)
+  pauseAtClosing: false, // opt-in: pause at 23:00 instead of running on (issue #12)
+  lastRecap: '', // the pending day-recap toast text; '' means no toast (issue #12)
   gameOver: false,
 };
 

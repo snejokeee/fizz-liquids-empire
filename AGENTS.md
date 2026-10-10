@@ -62,7 +62,7 @@ What exists:
   for CONFIG changes (issue #10)
 - real-time simulation (1 tick/s), customers, sales, event log
 - player actions: price slider, recipe unlock (night)
-- day/night cycle: opens 08:00–23:00, game starts at 06:00 (pre-opening night shopping), OPEN/CLOSED badge, daily recap (incl. the day's reputation gain), fast-forward to the next day boundary
+- day/night cycle: opens 08:00–23:00, game starts at 06:00 (pre-opening night shopping), OPEN/CLOSED badge, daily recap (incl. the day's reputation gain) logged and shown as a closing recap toast (issue #12), fast-forward to the next day boundary ("Wait until opening"/"Wait until closing")
 - night supplies (lemons): buy lemons while closed, auto-restock consumes money + lemons (production chain seed)
 - auto-restock: the stall produces cups by itself while stock is below capacity
   — costs $1 + lemons per cup, takes 3 ticks per cup, runs day/night and during
@@ -91,6 +91,9 @@ What exists:
   next to "Sell chance" (renamed from "Buy chance"); the purchase log names
   the recipe actually sold (fallback included); the redundant serving
   selector was removed — the stall always serves the best unlocked recipe
+- day-boundary comfort (issue #12): closing pops a recap toast ("Got it"
+  dismisses it, the next opening clears it) and the opt-in "Pause at closing"
+  checkbox freezes the simulation at 23:00 instead of running the night
 - company-title milestones, game over + restart
 - Modern Beverage Tycoon UI (v0.0.5): dark glass dashboard themed with CSS
   custom properties (:root design tokens), sticky header with colored status

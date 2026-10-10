@@ -276,6 +276,26 @@ body::before {
   gap: var(--space-sm);
 }
 
+/* "Pause at closing" checkbox in the timeline (issue #12) — a quiet label so
+   it reads as a setting, not a call to action. */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toggle input[type='checkbox'] {
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent-cyan);
+  cursor: pointer;
+}
+
 /* Header status chips: money (green) and reputation (gold) sit left of the
    timeline, each with its own accent; all share .header-chip. */
 .header-chip {
@@ -858,6 +878,47 @@ input[type='range']::-moz-range-thumb {
 .tooltip-stats div span:last-child {
   color: var(--text-primary);
   font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------------
+   Day recap toast (issue #12) — a fixed card in the bottom-right corner that
+   appears at closing, so the day boundary is visible even when the player is
+   idle. Static like everything else: no slide-in, just a show/hide.
+   --------------------------------------------------------------------------- */
+.recap-toast {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  max-width: min(440px, calc(100vw - 32px));
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.84rem;
+  background: var(--surface);
+  border: 1px solid rgba(250, 204, 21, 0.4);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+}
+
+.recap-title {
+  flex-shrink: 0;
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent-lemon);
+}
+
+.recap-text {
+  color: var(--text-primary);
+}
+
+.recap-toast .btn {
+  min-height: 30px;
+  padding: 3px 10px;
+  font-size: 0.78rem;
 }
 
 /* ---------------------------------------------------------------------------

@@ -14,6 +14,10 @@ const els = {
   timeline: document.getElementById('timeline'),
   pause: document.getElementById('pause'),
   skipTime: document.getElementById('skip-time'),
+  pauseAtClosing: document.getElementById('pause-at-closing'),
+  recapToast: document.getElementById('recap-toast'),
+  recapText: document.getElementById('recap-text'),
+  dismissRecap: document.getElementById('dismiss-recap'),
   price: document.getElementById('price'),
   sellChance: document.getElementById('sell-chance'),
   arrivalChance: document.getElementById('arrival-chance'),
@@ -79,7 +83,13 @@ function render() {
   setText(els.pause, state.paused ? 'Play' : 'Pause');
   els.pause.disabled = state.gameOver;
   els.skipTime.classList.toggle('hidden', state.gameOver);
-  setText(els.skipTime, open ? 'Wait until closing' : 'Wait until morning');
+  setText(els.skipTime, open ? 'Wait until closing' : 'Wait until opening');
+  els.pauseAtClosing.checked = state.pauseAtClosing;
+  els.pauseAtClosing.disabled = state.gameOver;
+  // Day recap toast (issue #12): shown while a recap is pending, cleared by
+  // the next opening or the Got it button.
+  els.recapToast.classList.toggle('hidden', state.lastRecap === '');
+  setText(els.recapText, state.lastRecap);
   setText(els.price, state.price);
   els.priceSlider.value = state.price;
   // buyChance() is the customer's purchase probability (DESIGN.md §6); the
@@ -202,6 +212,19 @@ function togglePause() {
   render();
 }
 
+// "Pause at closing" (issue #12): an opt-in AFK guard — the simulation stops
+// itself at 23:00, so a night (or a day) away never eats game time.
+function togglePauseAtClosing(enabled) {
+  state.pauseAtClosing = enabled;
+  render();
+}
+
+// "Got it" on the day recap toast (issue #12).
+function dismissRecap() {
+  state.lastRecap = '';
+  render();
+}
+
 function restart() {
   Object.assign(state, {
     money: CONFIG.starterMoney,
@@ -218,6 +241,8 @@ function restart() {
     restockProgress: 0,
     ticks: 0,
     paused: false,
+    pauseAtClosing: false,
+    lastRecap: '',
     gameOver: false,
   });
   els.logList.replaceChildren();
@@ -234,15 +259,25 @@ function restart() {
 // fast-forward action (issue #6).
 function handleDayBoundary(wasOpen) {
   if (isOpen() && !wasOpen) {
-    // The stall opens for a new day: start fresh day counters.
+    // The stall opens for a new day: start fresh day counters and clear the
+    // previous day's recap toast (issue #12).
     state.dayCupsSold = 0;
     state.dayEarned = 0;
     state.dayReputation = 0;
+    state.lastRecap = '';
     addLog('The stall opens for the day!');
   } else if (!isOpen() && wasOpen) {
-    // Closing time: recap the day that just ended.
+    // Closing time: recap the day that just ended. The same line is logged and
+    // shown in the recap toast (issue #12), so an idle player notices the day
+    // boundary; with "Pause at closing" on, the simulation also stops here.
+    const recap = `Today: ${state.dayCupsSold} cups sold, $${state.dayEarned} earned. Reputation +${Math.floor(state.dayReputation)} → ${Math.floor(state.reputation)}.`;
     addLog('Closing time — the stall is now closed.');
-    addLog(`Today: ${state.dayCupsSold} cups sold, $${state.dayEarned} earned. Reputation +${Math.floor(state.dayReputation)} → ${Math.floor(state.reputation)}.`);
+    addLog(recap);
+    state.lastRecap = recap;
+    if (state.pauseAtClosing) {
+      state.paused = true;
+      addLog('Paused at closing — press Play to continue.');
+    }
   }
 }
 
@@ -380,6 +415,8 @@ function init() {
   els.upgradeRecipe.addEventListener('click', upgradeRecipe);
   els.pause.addEventListener('click', togglePause);
   els.skipTime.addEventListener('click', skipToBoundary);
+  els.pauseAtClosing.addEventListener('change', (event) => togglePauseAtClosing(event.target.checked));
+  els.dismissRecap.addEventListener('click', dismissRecap);
   els.restart.addEventListener('click', restart);
   wireTooltips();
   setInterval(tick, CONFIG.tickIntervalMs);
